@@ -1,17 +1,18 @@
-pragma solidity ^0.8;
+pragma solidity 0.8.11;
 
 import "./ERC1155WithAccess.sol";
+import "./IDigitalDustDAO";
 
-contract DigitalDustDAO is ERC1155WithAccess {
+contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     uint64 constant private GRANT_RIGHTS = 100;
     uint64 constant private REVOKE_RIGHTS = 400;
     uint64 constant private APPLY_PENALTY = 400;
-    uint64 constant private START_PROJECT = 400;
+    uint64 constant private START_PROJECT = 500;
 
-    mapping(uint256 => boolean) private _activeProjects;
+    mapping(uint256 => bool) private _activeProjects;
 
     constructor() ERC1155WithAccess("") {
-        _balances[0][_msgSender()].rights = 500;
+        _balances[0][_msgSender()].rights = 1000;
     }
 
     function rightsOf(uint256 id, address account) public view returns (uint64 rights) {
