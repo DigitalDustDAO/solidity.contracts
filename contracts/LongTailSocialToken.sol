@@ -7,4 +7,6 @@ import "./ISocialToken.sol";
 
 abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
+
+
 }

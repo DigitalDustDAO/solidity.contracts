@@ -11,7 +11,7 @@ contract LongTailBootstrapper is ILongTailAdministrator {
     uint256 DAOid;
 
     constructor(address DAO, uint256 id) {
-        // DAOAddress = DAO; // fix: can't convert address to IDigitalDustDAO
+        DAOAddress = IDigitalDustDAO(DAO);
         DAOid = id;
     }
 

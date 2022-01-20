@@ -46,7 +46,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
             "Not enough rights to revoke rights"
         );
         require(callerRights >= rights, "Callers rights cannot exceed granted rights");
-        require(callerRights > targetRights, "Caller cannot revoke rights from elevated member");
+        require(callerRights >= targetRights, "Cannot revoke rights from higher ranked accounts");
         _balances[id][account].rights = rights;
     }
 
