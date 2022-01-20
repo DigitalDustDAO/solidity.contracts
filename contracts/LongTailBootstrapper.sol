@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity 0.8.11;
 
 import "./ILongTailAdministrator.sol";
@@ -8,8 +10,8 @@ contract LongTailBootstrapper is ILongTailAdministrator {
     IDigitalDustDAO DAOAddress;
     uint256 DAOid;
 
-    constructor(address memory DAO, uint256 memory id) {
-        DAOAddress = DAO;
+    constructor(address DAO, uint256 id) {
+        // DAOAddress = DAO; // fix: can't convert address to IDigitalDustDAO
         DAOid = id;
     }
 

@@ -1,13 +1,17 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity 0.8.11;
 
 import "./ERC1155WithAccess.sol";
-import "./IDigitalDustDAO";
+import "./IDigitalDustDAO.sol";
 
 contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     uint64 constant private GRANT_RIGHTS = 100;
     uint64 constant private REVOKE_RIGHTS = 400;
     uint64 constant private APPLY_PENALTY = 400;
     uint64 constant private START_PROJECT = 500;
+
+    mapping(uint256 => mapping(address => MemberBalance)) private _balances;
 
     mapping(uint256 => bool) private _activeProjects;
 
@@ -33,7 +37,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     }
 
     function setRights(uint256 id, address account, uint64 rights) public {
-        uint64 memory callerRights = rightsOf(id, _msgSender());
+        uint64 callerRights = rightsOf(id, _msgSender());
         require(callerRights >= GRANT_RIGHTS, "Not enough rights to grant rights");
         require(
             callerRights < REVOKE_RIGHTS
@@ -49,7 +53,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         uint128 amount,
         bytes memory data
     ) internal {
-        require(rightsOf(0, _msgSender() >= START_PROJECT), "Not enough rights to start a project");
+        require(rightsOf(0, _msgSender()) >= START_PROJECT, "Not enough rights to start a project");
         require(_activeProjects[id] == false, "Project id already exists");
 
         _activeProjects[id] = true;
