@@ -38,13 +38,15 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
 
     function setRights(uint256 id, address account, uint64 rights) public {
         uint64 callerRights = rightsOf(id, _msgSender());
+        uint64 targetRights = rightsOf(id, account);
         require(callerRights >= GRANT_RIGHTS, "Not enough rights to grant rights");
         require(
-            callerRights < REVOKE_RIGHTS
-            && rightsOf(id, account) > rights,
+            callerRights >= REVOKE_RIGHTS
+            || targetRights < rights,
             "Not enough rights to revoke rights"
         );
         require(callerRights >= rights, "Callers rights cannot exceed granted rights");
+        require(callerRights > targetRights, "Caller cannot revoke rights from elevated member");
         _balances[id][account].rights = rights;
     }
 
