@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "compile": "npx truffle compile",
+    "develop": "npx truffle develop",
+    "test": "npx truffle test",
+    "test-compile-none": "npx truffle test --compile-none"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +17,7 @@
     "@openzeppelin/contracts-upgradeable": "^4.4.2",
     "@openzeppelin/test-helpers": "^0.5.15",
     "@truffle/hdwallet-provider": "^2.0.0",
-    "truffle": "^5.4.29",
+    "truffle": "^5.4.30",
     "truffle-flattener": "^1.5.0"
   }
 }
