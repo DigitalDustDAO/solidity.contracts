@@ -17,6 +17,8 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
 
     constructor() ERC1155WithAccess("") {
         _balances[0][_msgSender()].rights = 1000;
+
+        emit SetRights(0, address(0), _msgSender(), 1000);
     }
 
     function rightsOf(uint256 id, address account) public view returns (uint64 rights) {
@@ -34,6 +36,8 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     function setPenalty(uint256 id, address account, uint64 penalty) public {
         require(rightsOf(id, _msgSender()) >= APPLY_PENALTY, "Not enough rights to set penalty");
         _balances[id][account].penalty = penalty;
+
+        emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
     function setRights(uint256 id, address account, uint64 rights) public {
@@ -48,6 +52,8 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         require(callerRights >= rights, "Callers rights cannot exceed granted rights");
         require(callerRights >= targetRights, "Cannot revoke rights from higher ranked accounts");
         _balances[id][account].rights = rights;
+
+        emit SetRights(id, _msgSender(), account, rights);
     }
 
     function startProject(
@@ -60,5 +66,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
 
         _activeProjects[id] = true;
         _mint(_msgSender(), id, amount, data);
+
+        emit StartProject(_msgSender(), id, amount);
     }
 }
