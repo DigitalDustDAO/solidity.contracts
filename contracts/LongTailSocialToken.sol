@@ -3,6 +3,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
+import "./ILongTailManager.sol";
 import "./ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC777 {
@@ -25,21 +26,29 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     mapping(address => StakeData[]) private stakesByAccount;
     //mapping(uint256 => StakeData) private stakeList;
 
-    //uint128 public nextStakeId;
-
     uint private START_TIME;
     uint private TIME_PER_DAY;
 
-    constructor(address manager)  {
+    ILongTailManager private manager;
 
+    constructor(address memory manager_, address[] memory defaultOperators_) ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
+        manager = ILongTailManager(manager_);
     }
 
-    function stake(uint256 principal, uint32 numberOfDays) public returns(uint256) {
+    function changeManager(address newManager) public {
+        require(_msgSender() == manager, "Not for users");
+        manager = ILongTailManager(newManager);
+    }
+
+    function stake(uint256 amount, uint32 numberOfDays) public returns(uint256) {
+        require(_balance[_msgSender()] >= amount, "Insufficient balance");
+    }
+
+    ////
+    // Returns up to 12 stakes for the supplied user starting at the supplied index.
+    ////
+    function getUserStakes (address account, uint startIndex) public view returns(StakeData[]) {
         
-    }
-
-    function getUserStakes (uint startIndex, uint number) public view returns(StakeData[]) {
-
     }
 
     function _currentFrame() private virtual returns(uint32) {

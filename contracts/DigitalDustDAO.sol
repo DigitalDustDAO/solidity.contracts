@@ -6,7 +6,7 @@ import "./ERC1155WithAccess.sol";
 import "./IDigitalDustDAO.sol";
 
 contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
-    uint64 constant private GRANT_RIGHTS = 100;
+    uint64 constant private GRANT_RIGHTS = 101;
     uint64 constant private REVOKE_RIGHTS = 400;
     uint64 constant private APPLY_PENALTY = 400;
     uint64 constant private START_PROJECT = 500;
