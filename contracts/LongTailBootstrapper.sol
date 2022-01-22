@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.11;
 
-import "./ILongTailManager.sol";
+import "./ISocialTokenManager.sol";
 import "./IDigitalDustDAO.sol";
 
-contract LongTailBootstrapper is ILongTailManager {
+contract LongTailBootstrapper is ISocialTokenManager {
 
     IDigitalDustDAO DAOAddress;
     uint256 DAOid;
