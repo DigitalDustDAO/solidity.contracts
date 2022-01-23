@@ -10,28 +10,26 @@ import "./ISocialToken.sol";
 contract LongTailSocialToken is ISocialToken, ERC777 {
 
 // framerate, interest, adding and redeeming stakes, mining
-    struct StakeDataEnd {
+    struct StakeDataPointer {
         address owner;
-        uint32 start;
-        uint64 interest;
-        uint256 principal;
-        uint256 index;
+        uint96 index;
    }
 
-    struct StakeDataAccount {
-        uint32 start;
-        uint32 end;
-        uint64 interest;
+    struct StakeData {
+        uint64 start;
+        uint64 end;
+        uint32 interest;
+        uint96 index;
         uint256 principal;
-        uint256 index;
-   }
+    }
 
     //uint constant STAKE_ARRAY_SIZE = 5872;
     uint private constant MAXIMUM_STAKE_DAYS = 5840;
+    uint private constant MININUM_STAKE_DAYS = 30;
     //uint constant MAXIMUM_STAKES_PER_ADDRESS = uint24.max;
 
-    mapping(uint32 => StakeDataEnd[]) private stakesByEndDay;
-    mapping(address => StakeDataAccount[]) private stakesByAccount;
+    mapping(uint64 => StakeDataPointer[]) private stakesByEndDay;
+    mapping(address => StakeData[]) private stakesByAccount;
     //mapping(uint256 => StakeData) private stakeList;
 
     uint private START_TIME;
@@ -59,51 +57,56 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function stake(uint256 amount, uint32 numberOfDays) public returns(uint256) {
-        require(balanceOf(_msgSender()) >= amount, "Insufficient balance");
-        require(numberOfDays <= MAXIMUM_STAKE_DAYS && _currentFrame() + numberOfDays <= type(uint32).max, "Stake was too long");
-        require(numberOfDays > 0, "Must stake for at least 1 day");
+    function stake(uint256 amount, uint64 numberOfDays) public returns(uint256) {
+        // cache refrence variables
+        address stakeAccount = _msgSender();
+        uint64 currentDay = _currentDay();
+        uint64 endDay = currentDay + numberOfDays;
+        uint256 accountIndex = stakesByAccount[stakeAccount].length;
+        uint256 endDayIndex = stakesByEndDay[endDay].length;
 
-        uint32 currentFrame = _currentFrame();
-        uint32 endDay = currentFrame + numberOfDays;
-        uint64 interest = _calculateInterest(numberOfDays);
+        // ensure inputs are not out of range 
+        require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
+        require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake duration is too long"); 
+        require(numberOfDays >= MININUM_STAKE_DAYS, "Stake was too short");
+        require(accountIndex <= type(uint96).max, "This address may no longer stake");
+        require(endDayIndex <= type(uint96).max, "Too many stakes are ending on that day");
 
-        stakesByEndDay[endDay].push(StakeDataEnd(
-            _msgSender(),
-            currentFrame, 
-            interest, 
-            amount,
-            stakesByAccount[_msgSender()].length
+        //populate stake data
+        stakesByEndDay[endDay].push(StakeDataPointer(
+            stakeAccount,
+            uint96(accountIndex)
         ));
 
-        stakesByAccount[_msgSender()].push(StakeDataAccount(
-            currentFrame, 
+        stakesByAccount[stakeAccount].push(StakeData(
+            currentDay, 
             endDay,
-            interest, 
-            amount,
-            stakesByEndDay[endDay].length - 1
+            _calculateInterest(numberOfDays), 
+            uint96(endDayIndex),
+            amount
         ));
 
-        _send(_msgSender(), address(this), amount, "", "staked", false);
+        // send 
+        _send(stakeAccount, address(this), amount, "", "staked", false);
 
         //TODO: emit event
 
-        return stakesByAccount[_msgSender()].length - 1;
+        return accountIndex;
     }
 
     function unstake(uint256 stakeNumber) public {
-
+        
     }
 
-    function getStakeStart (address account, uint id) public view returns(uint32) {
+    function getStakeStart (address account, uint id) public view returns(uint64) {
         return stakesByAccount[account][id].start;
     }
 
-    function getStakeEnd (address account, uint id) public view returns(uint32) {
+    function getStakeEnd (address account, uint id) public view returns(uint64) {
         return stakesByAccount[account][id].end;
     }
 
-    function getStakeInterest (address account, uint id) public view returns(uint64) {
+    function getStakeInterest (address account, uint id) public view returns(uint32) {
         return stakesByAccount[account][id].interest;
     }
 
@@ -111,11 +114,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
-    function _currentFrame() private returns(uint32) {
+    function _currentDay() private returns(uint32) {
         
     }
 
-    function _calculateInterest(uint32 numberOfDays) private returns(uint64) {
+    function _calculateInterest(uint64 numberOfDays) private returns(uint32) {
         
     }
 }
