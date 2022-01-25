@@ -12,14 +12,14 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
         address owner;
-        uint96 index;
+        uint32 interestRate;
+        uint64 index;
    }
 
     struct StakeData {
         uint64 start;
         uint64 end;
-        uint32 interestRate;
-        uint96 index;
+        uint128 index;
         uint256 principal;
     }
 
@@ -58,7 +58,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function stake(uint256 amount, uint16 numberOfDays) public returns(uint96) {
+    function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint64 currentDay = _currentDay();
@@ -71,32 +71,32 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
         require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake duration is too long"); 
         require(numberOfDays >= MININUM_STAKE_DAYS, "Stake duration is too short");
-        require(accountIndex <= type(uint96).max, "Maximum number of stakes reached for this address");
-        require(endDayIndex <= type(uint96).max, "Too many stakes are ending on that day");
+        require(accountIndex <= type(uint64).max, "Maximum number of stakes reached for this address");
+        require(endDayIndex <= type(uint128).max, "Too many stakes are ending on that day");
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
             stakeAccount,
-            uint96(accountIndex)
+            _calculateInterestRate(numberOfDays),
+            uint64(accountIndex)
         ));
 
         stakesByAccount[stakeAccount].push(StakeData(
             currentDay, 
             endDay,
-            _calculateInterestRate(numberOfDays), 
-            uint96(endDayIndex),
+            uint128(endDayIndex),
             amount
         ));
 
         // send 
         _send(stakeAccount, address(this), amount, "", "", true);
 
-        emit Staked(stakeAccount, numberOfDays, endDay, amount, stakesByAccount[stakeAccount][accountIndex].interestRate, uint96(accountIndex));
+        emit Staked(stakeAccount, numberOfDays, endDay, amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint64(accountIndex));
 
-        return uint96(accountIndex);
+        return uint64(accountIndex);
     }
 
-    function unstake(uint96 stakeNumber) public {
+    function unstake(uint64 stakeNumber) public {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 principal = stakesByAccount[stakeAccount][stakeNumber].principal;
@@ -108,7 +108,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         (bool positive, uint256 interest) = _calculateInterest(
             stakesByAccount[stakeAccount][stakeNumber].start,
             stakesByAccount[stakeAccount][stakeNumber].end,
-            stakesByAccount[stakeAccount][stakeNumber].interestRate,
+            stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index].interestRate,
             stakesByAccount[stakeAccount][stakeNumber].principal);
 
         // delete the stake data
@@ -126,22 +126,24 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
 
         // emit events
-        emit RedeemedStake(stakeAccount, principal, positive ? int256(interest) : (int256(interest) * -1));
+        unchecked { // overflow is theoritically possible here, but should not cause the function to revert
+            emit RedeemedStake(stakeAccount, principal, positive ? int256(interest) : (int256(interest) * -1));
+        } 
     }
 
-    function getStakeStart (address account, uint id) public view returns(uint64) {
+    function getStakeStart (address account, uint64 id) public view returns(uint64) {
         return stakesByAccount[account][id].start;
     }
 
-    function getStakeEnd (address account, uint id) public view returns(uint64) {
+    function getStakeEnd (address account, uint64 id) public view returns(uint64) {
         return stakesByAccount[account][id].end;
     }
 
-    function getStakeInterestRate (address account, uint id) public view returns(uint32) {
-        return stakesByAccount[account][id].interestRate;
+    function getStakeInterestRate (address account, uint64 id) public view returns(uint32) {
+        return stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate;
     }
 
-    function getStakePrincipal (address account, uint id) public view returns(uint256) {
+    function getStakePrincipal (address account, uint64 id) public view returns(uint256) {
         return stakesByAccount[account][id].principal;
     }
 
