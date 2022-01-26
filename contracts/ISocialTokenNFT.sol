@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.11;
 
-interface ISocialTokenNFT {
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+interface ISocialTokenNFT is IERC165 {
     
 }
