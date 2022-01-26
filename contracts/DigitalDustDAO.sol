@@ -60,7 +60,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         uint256 id,
         uint128 amount,
         bytes memory data
-    ) internal {
+    ) public {
         require(rightsOf(0, _msgSender()) >= START_PROJECT, "Not enough rights to start a project");
         require(_activeProjects[id] == false, "Project id already exists");
 
