@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity 0.8.11;
+
+import "./SocialTokenManager.sol";
+import "./LongTailSocialToken.sol";
+import "./ISocialTokenNFT.sol";
+import "./IDigitalDustDAO.sol";
+
+abstract contract LongTailBootstrapper is SocialTokenManager {
+    function setTokenManager(address managerAddr) public onlyOwner returns (address) {
+        require(ISocialTokenManager(managerAddr).supportsInterface(ISocialTokenManager), "Contract must support LongTailSocialToken");
+
+        token.setManager(managerAddr);
+        return managerAddr;
+    }
+
+    // function setTokenNFT(address nftAddr) public onlyOwner returns (address) {
+    //     require(address(token) >= address(0), "Must set token before token NFT");
+    //     tokenNft = ISocialTokenNFT(nftAddr);
+    //     token.setNft(nftAddr);
+    //     return nftAddr;
+    // }
+}
