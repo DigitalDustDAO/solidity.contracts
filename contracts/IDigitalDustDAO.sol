@@ -30,4 +30,6 @@ interface IDigitalDustDAO {
     function setPenalty(uint256 id, address account, uint64 penalty) external;
 
     function setRights(uint256 id, address account, uint64 rights) external;
+
+    function startProject(uint256 id, uint128 amount, bytes memory data) external;
 }
