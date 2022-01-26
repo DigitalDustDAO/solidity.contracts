@@ -23,11 +23,9 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         uint256 principal;
     }
 
-    //uint constant STAKE_ARRAY_SIZE = 5872;
-    uint private constant MAXIMUM_STAKE_DAYS = 5840;
+    uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 30;
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
-    //uint constant MAXIMUM_STAKES_PER_ADDRESS = uint24.max;
 
     mapping(uint64 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
@@ -36,9 +34,18 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private START_TIME;
     uint private TIME_PER_DAY;
 
+    uint64 private baseInterestRate;
+    uint64 private linearInterestBonus;
+    uint64 private quadraticInterestBonus;
+
+
     ISocialTokenManager private manager;
     ISocialTokenNFT private nftContract;
 
+    modifier onlyManager() {
+        require(_msgSender() == address(manager), "Not for users");
+        _;
+    }
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -46,16 +53,26 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         manager = ISocialTokenManager(manager_);
     }
 
-    function setManager(address newManager) public {
-        require(_msgSender() == address(manager), "Not for users");
-
+    function setManager(address newManager) public onlyManager {
         manager = ISocialTokenManager(newManager);
     }
 
-    function setNFT(address newNFT) public {
-        require(_msgSender() == address(manager), "Not for users");
-
+    function setNFT(address newNFT) public onlyManager {
         nftContract = ISocialTokenNFT(newNFT);
+    }
+
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic) public onlyManager {
+        if (base > 0) {
+            baseInterestRate = base;
+        }
+
+        if (linear > 0) {
+            linearInterestBonus = linear;
+        }
+
+        if (quadratic > 0) {
+            quadraticInterestBonus = quadratic;
+        }
     }
 
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
@@ -77,7 +94,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
             stakeAccount,
-            _calculateInterestRate(numberOfDays),
+            _calculateInterestRate(stakeAccount, numberOfDays),
             uint64(accountIndex)
         ));
 
@@ -147,15 +164,16 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
-    function _currentDay() private returns(uint32) {
+    function _currentDay() private returns(uint64) {
         
     }
 
     function _calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) private pure returns(bool, uint256) {
-
+        
     }
 
-    function _calculateInterestRate(uint64 numberOfDays) private pure returns(uint32) {
-        
+    function _calculateInterestRate(address account, uint64 numberOfDays) private returns(uint32) {
+        uint64 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + nftContract.interestBonus(account);
+        return interest / type(uint32).max;
     }
 }
