@@ -9,8 +9,8 @@ import "./ISocialTokenNFT.sol";
 import "./IDigitalDustDAO.sol";
 
 contract SocialTokenManager is ISocialTokenManager {
-    IDigitalDustDAO private dao;
-    LongTailSocialToken private token;
+    IDigitalDustDAO public dao;
+    LongTailSocialToken public token;
 
     bytes4 iSocialTokenHash;
     bytes4 iSocialTokenNFTHash;
