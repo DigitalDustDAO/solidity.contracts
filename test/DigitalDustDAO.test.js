@@ -7,7 +7,7 @@ contract('DigitalDustDAO', (accounts) => {
     const [creator, userA, userB, ...others] = accounts;
     const RIGHTS = {
         none: 0,
-        grant: 100,
+        grant: 200,
         penalty: 400,
         revoke: 400,
         start: 500
