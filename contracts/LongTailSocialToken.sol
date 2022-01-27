@@ -165,6 +165,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
+    function getCurrentInterestRates() public view returns(uint64, uint64, uint64) {
+        return (baseInterestRate, linearInterestBonus, quadraticInterestBonus);
+    }
+
     function currentDay() public view returns(uint64) {
         return uint64((block.timestamp - START_TIME) / 1 days);
     }
@@ -172,7 +176,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
         uint64 halfStakeLength = (end - start) / 2;
         uint64 timeStaked = currentDay() - start;
-        uint256 payoff = (interestRate * halfStakeLength * 2 * principal) / type(uint32).max;
+        uint256 payoff = (interestRate * (end - start) * principal) / type(uint32).max;
         if (timeStaked < halfStakeLength) {
             return (false, (payoff * timeStaked) / halfStakeLength);
         }

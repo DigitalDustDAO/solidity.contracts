@@ -5,11 +5,11 @@ pragma solidity 0.8.11;
 interface ISocialToken {
     event Staked (
         address indexed account,
-        uint16 indexed duration,
+        uint64 indexed duration,
         uint64 indexed endDay,
         uint256 amount,
         uint32 interestRate,
-        uint96 id
+        uint64 id
     );
 
     event RedeemedStake (
