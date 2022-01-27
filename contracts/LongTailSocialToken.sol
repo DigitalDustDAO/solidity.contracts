@@ -79,8 +79,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
         // cache refrence variables
         address stakeAccount = _msgSender();
-        uint64 currentDay = _currentDay();
-        uint64 endDay = currentDay + numberOfDays;
+        uint64 today = currentDay();
+        uint64 endDay = today + numberOfDays;
         uint256 accountIndex = stakesByAccount[stakeAccount].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
@@ -95,12 +95,12 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
             stakeAccount,
-            _calculateInterestRate(stakeAccount, numberOfDays),
+            calculateInterestRate(stakeAccount, numberOfDays),
             uint64(accountIndex)
         ));
 
         stakesByAccount[stakeAccount].push(StakeData(
-            currentDay, 
+            today, 
             endDay,
             uint128(endDayIndex),
             amount
@@ -123,7 +123,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         require(principal > 0, "Stake does not exist or has already been redeemed");
         
         // calculate the reward
-        (bool positive, uint256 interest) = _calculateInterest(
+        (bool positive, uint256 interest) = calculateInterest(
             stakesByAccount[stakeAccount][stakeNumber].start,
             stakesByAccount[stakeAccount][stakeNumber].end,
             stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index].interestRate,
@@ -165,13 +165,13 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
-    function _currentDay() private view returns(uint64) {
+    function currentDay() public view returns(uint64) {
         return uint64((block.timestamp - START_TIME) / 1 days);
     }
 
-    function _calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) private view returns(bool, uint256) {
+    function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
         uint64 halfStakeLength = (end - start) / 2;
-        uint64 timeStaked = _currentDay() - start;
+        uint64 timeStaked = currentDay() - start;
         uint256 payoff = (interestRate * halfStakeLength * 2 * principal) / type(uint32).max;
         if (timeStaked < halfStakeLength) {
             return (false, (payoff * timeStaked) / halfStakeLength);
@@ -181,7 +181,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _calculateInterestRate(address account, uint64 numberOfDays) private returns(uint32) {
+    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
         uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
