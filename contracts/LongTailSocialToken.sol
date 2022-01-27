@@ -164,16 +164,25 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
-    function _currentDay() private returns(uint64) {
+    function _currentDay() private pure returns(uint64) {
         
     }
 
     function _calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) private pure returns(bool, uint256) {
-        
+        uint64 halfStakeLength = (end - start) / 2;
+        uint64 timeStaked = _currentDay() - start;
+        uint256 payoff = (interestRate * halfStakeLength * 2 * principal) / type(uint32).max;
+        if (timeStaked < halfStakeLength) {
+            return (false, (payoff * timeStaked) / halfStakeLength);
+        }
+        else {
+            return (true, (payoff * (timeStaked - halfStakeLength)) / halfStakeLength);
+        }
     }
 
     function _calculateInterestRate(address account, uint64 numberOfDays) private returns(uint32) {
-        uint64 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + nftContract.interestBonus(account);
-        return interest / type(uint32).max;
+        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
+        // cap the value at what can be held in a uint64 and downcast it into a uint32
+        return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
     }
 }
