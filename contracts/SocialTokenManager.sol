@@ -14,9 +14,9 @@ contract SocialTokenManager is ISocialTokenManager {
 
     bytes4 iSocialTokenHash;
     bytes4 iSocialTokenNFTHash;
-    uint64 daoId;
+    uint256 daoId;
 
-    constructor(address dao_, uint64 daoId_) {
+    constructor(address dao_, uint256 daoId_) {
         dao = IDigitalDustDAO(dao_);
         daoId = daoId_;
         token = LongTailSocialToken(address(0));
@@ -50,7 +50,7 @@ contract SocialTokenManager is ISocialTokenManager {
             "Contract must support ISocialTokenManager"
         );
 
-        token.setManager(contractAddr);
+        token.setManager(contractAddr, ISocialToken.Sensitivity.Council);
         return contractAddr;
     }
 
@@ -62,5 +62,21 @@ contract SocialTokenManager is ISocialTokenManager {
 
         token.setNFT(contractAddr);
         return contractAddr;
+    }
+
+    function authorize(address source, address target, uint8 level) external view returns(bool) {
+        if (level <= 2) { //user
+            return source == target 
+                ? dao.rightsOf(daoId, source) >= 100 && dao.penaltyOf(daoId, source) == 0
+                : dao.rightsOf(daoId, source) >= 100 && dao.rightsOf(daoId, target) >= 100 && dao.penaltyOf(daoId, source) == 0 && dao.penaltyOf(daoId, target) == 0;
+        }
+        else if (level == 3) { // council
+            return source == target 
+                ? dao.rightsOf(daoId, source) >= 400 && dao.penaltyOf(daoId, source) < 100
+                : dao.rightsOf(daoId, source) >= 400 && dao.rightsOf(daoId, target) >= 400 && dao.penaltyOf(daoId, source) < 100 && dao.penaltyOf(daoId, target) < 100;
+        }
+        else { // invalid input, deny
+            return false;
+        }
     }
 }

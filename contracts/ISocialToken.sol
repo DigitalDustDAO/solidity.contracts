@@ -17,4 +17,11 @@ interface ISocialToken {
         uint256 principal,
         int256 interest
     );
+
+    enum Sensitivity {
+        Basic,
+        Community,
+        Council,
+        Manager
+    }
 }

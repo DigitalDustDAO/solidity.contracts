@@ -29,9 +29,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     mapping(uint64 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
-    //mapping(uint256 => StakeData) private stakeList;
 
     uint256 private START_TIME;
+
+    uint64 private lastInterestAdjustment;
 
     uint64 private baseInterestRate;
     uint64 private linearInterestBonus;
@@ -40,11 +41,26 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     ISocialTokenManager private manager;
     ISocialTokenNFT private nftContract;
+    Sensitivity private changeInterestSensitivity;
 
-    modifier onlyManager() {
-        require(_msgSender() == address(manager), "Not for users");
+    modifier check(Sensitivity level, address target) {
+        if (level == Sensitivity.Manager) {
+            require(_msgSender() == address(manager), "Not for users");
+        }
+        else {
+            require(manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
+        }
+
+        if (level == Sensitivity.Community) {
+            require(balanceOf(_msgSender()) > 0, "Must hold the token");
+        }
         _;
     }
+
+    // modifier onlyCommunity() {
+    //     require(_balance[_msgSender()] > 0, "Must hold the token");
+    //     _;
+    // }
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -52,17 +68,24 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         manager = ISocialTokenManager(manager_);
 
         START_TIME = block.timestamp - (block.timestamp % 1 days);
+        lastInterestAdjustment = type(uint64).max;
+        changeInterestSensitivity = Sensitivity.Council;
     }
 
-    function setManager(address newManager) public onlyManager {
+    function setManager(address newManager, Sensitivity changeInterestSensitivity_) public check(Sensitivity.Manager, _msgSender()) {
         manager = ISocialTokenManager(newManager);
+        changeInterestSensitivity = changeInterestSensitivity_;
     }
 
-    function setNFT(address newNFT) public onlyManager {
+    function setNFT(address newNFT) public check(Sensitivity.Manager, _msgSender()) {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic) public onlyManager {
+    function startInterestAdjustment() public check(Sensitivity.Manager, _msgSender()) {
+        lastInterestAdjustment = 0;
+    }
+
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic) public check(changeInterestSensitivity, _msgSender()) {
         if (base > 0) {
             baseInterestRate = base;
         }
@@ -144,7 +167,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
 
         // emit events
-        unchecked { // overflow is theoritically possible here, but should not cause the function to revert
+        unchecked { // overflow is very remotely possible here, but should not cause the function to revert since this is not essential functionality
             emit RedeemedStake(stakeAccount, principal, positive ? int256(interest) : (int256(interest) * -1));
         } 
     }
@@ -189,5 +212,18 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
+    }
+
+    function mine() public check(Sensitivity.Community, _msgSender()) {
+        uint64 today = currentDay();
+
+    }
+
+    function transfer(address recipient, uint256 amount) public virtual override check(Sensitivity.Basic, recipient) returns (bool) {
+        return super.transfer(recipient, amount);
+    }
+
+    function send(address recipient, uint256 amount, bytes memory data) public virtual override check(Sensitivity.Basic, recipient) {
+        super.send(recipient, amount, data);
     }
 }
