@@ -45,22 +45,17 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     modifier check(Sensitivity level, address target) {
         if (level == Sensitivity.Manager) {
-            require(_msgSender() == address(manager), "Not for users");
+            require(_msgSender() == address(manager), "Not authorized");
         }
         else {
             require(manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
         }
 
         if (level == Sensitivity.Community) {
-            require(balanceOf(_msgSender()) > 0, "Must hold the token");
+            require(balanceOf(_msgSender()) > 0);
         }
         _;
     }
-
-    // modifier onlyCommunity() {
-    //     require(_balance[_msgSender()] > 0, "Must hold the token");
-    //     _;
-    // }
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -108,12 +103,12 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
         // ensure inputs are not out of range 
-        require(amount >= MININUM_STAKE_AMOUNT, "Amount of stake too low");
-        require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
-        require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake duration is too long"); 
-        require(numberOfDays >= MININUM_STAKE_DAYS, "Stake duration is too short");
-        require(accountIndex <= type(uint64).max, "Maximum number of stakes reached for this address");
-        require(endDayIndex <= type(uint128).max, "Too many stakes are ending on that day");
+        require(amount >= MININUM_STAKE_AMOUNT);
+        require(balanceOf(stakeAccount) >= amount);
+        require(numberOfDays <= MAXIMUM_STAKE_DAYS); 
+        require(numberOfDays >= MININUM_STAKE_DAYS);
+        require(accountIndex <= type(uint64).max);
+        require(endDayIndex <= type(uint128).max);
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
@@ -143,7 +138,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         uint256 principal = stakesByAccount[stakeAccount][stakeNumber].principal;
 
         // ensure outputs within range 
-        require(principal > 0, "Stake does not exist or has already been redeemed");
+        require(principal > 0);
         
         // calculate the reward
         (bool positive, uint256 interest) = calculateInterest(
@@ -159,11 +154,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // distribute the funds
         if (positive) {
             _send(address(this), stakeAccount, principal, "", "", true);
-            _mint(stakeAccount, interest, "", "staking reward");
+            _mint(stakeAccount, interest, "", "");
         }
         else {
             _send(address(this), stakeAccount, principal - interest, "", "", true);
-            _burn(address(this), interest, "", "penality for early withdrawal");
+            _burn(address(this), interest, "", "");
         }
 
         // emit events
