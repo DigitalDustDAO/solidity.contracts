@@ -33,23 +33,23 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint256 private START_TIME;
 
     uint64 private lastInterestAdjustment;
+    uint64 private lastCompletedDistribution;
 
     uint64 private baseInterestRate;
     uint64 private linearInterestBonus;
     uint64 private quadraticInterestBonus;
+    uint64 private rewardPerMiningTask;
 
 
     ISocialTokenManager private manager;
     ISocialTokenNFT private nftContract;
-    Sensitivity private changeInterestSensitivity;
+    Sensitivity private matainanceSensitivity;
 
     modifier check(Sensitivity level, address target) {
-        if (level == Sensitivity.Manager) {
-            require(_msgSender() == address(manager), "Not authorized");
-        }
-        else {
-            require(manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
-        }
+
+        require((level == Sensitivity.Manager && _msgSender() == address(manager)) 
+            || manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
+        
 
         if (level == Sensitivity.Community) {
             require(balanceOf(_msgSender()) > 0);
@@ -64,23 +64,32 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         START_TIME = block.timestamp - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
-        changeInterestSensitivity = Sensitivity.Council;
+        matainanceSensitivity = Sensitivity.Council;
+
+        // Pick some default values
+        baseInterestRate = 50;
+        linearInterestBonus = 25;
+        quadraticInterestBonus = 10;
+        rewardPerMiningTask = 50;
     }
 
-    function setManager(address newManager, Sensitivity changeInterestSensitivity_) public check(Sensitivity.Manager, _msgSender()) {
+    function setManager(address newManager) external check(Sensitivity.Manager, _msgSender()) {
         manager = ISocialTokenManager(newManager);
-        changeInterestSensitivity = changeInterestSensitivity_;
     }
 
-    function setNFT(address newNFT) public check(Sensitivity.Manager, _msgSender()) {
+    function setNFT(address newNFT) external check(Sensitivity.Manager, _msgSender()) {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function startInterestAdjustment() public check(Sensitivity.Manager, _msgSender()) {
+    function startInterestAdjustmentTask() external check(matainanceSensitivity, _msgSender()) {
         lastInterestAdjustment = 0;
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic) public check(changeInterestSensitivity, _msgSender()) {
+    function changeMatainanceSensitivity(Sensitivity newLevel) external check(matainanceSensitivity, _msgSender()) {
+        matainanceSensitivity = newLevel;
+    }
+
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external check(matainanceSensitivity, _msgSender()) {
         if (base > 0) {
             baseInterestRate = base;
         }
@@ -92,12 +101,16 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         if (quadratic > 0) {
             quadraticInterestBonus = quadratic;
         }
+
+        if (miningReward > 0) {
+            rewardPerMiningTask = miningReward;
+        }
     }
 
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
         // cache refrence variables
         address stakeAccount = _msgSender();
-        uint64 today = currentDay();
+        uint64 today = getCurrentDay();
         uint64 endDay = today + numberOfDays;
         uint256 accountIndex = stakesByAccount[stakeAccount].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
@@ -187,14 +200,14 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return (baseInterestRate, linearInterestBonus, quadraticInterestBonus);
     }
 
-    function currentDay() public view returns(uint64) {
+    function getCurrentDay() public view returns(uint64) {
         return uint64((block.timestamp - START_TIME) / 1 days);
     }
 
     function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
         uint64 halfStakeLength = (end - start) / 2;
-        uint64 timeStaked = currentDay() - start;
-        uint256 payoff = (interestRate * (end - start) * principal) / type(uint32).max;
+        uint64 timeStaked = getCurrentDay() - start;
+        uint256 payoff = _fullInterest(end - start, interestRate, principal);
         if (timeStaked < halfStakeLength) {
             return (false, (payoff * timeStaked) / halfStakeLength);
         }
@@ -203,15 +216,62 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
+    function _fullInterest(uint64 duration, uint32 interestRate, uint256 principal) private pure returns(uint256) {
+        return (interestRate * duration * principal) / type(uint32).max;
+    }
+
     function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
         uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
     }
 
-    function mine() public check(Sensitivity.Community, _msgSender()) {
-        uint64 today = currentDay();
+    function getNumMiningTasks() public view returns(uint256) {
+        uint64 today = getCurrentDay();
+        uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
+        for (uint64 i = lastCompletedDistribution;i <= today;i++) {
+            numTasks = numTasks + stakesByEndDay[i].length;
+        }
+        return numTasks;
+    }
 
+    function mine() public check(Sensitivity.Community, _msgSender()) {
+        uint64 today = getCurrentDay();
+        uint64 tasksCompleted = 0;
+        StakeDataPointer memory currentStake;
+        StakeData memory accountStake;
+
+        // adjust interest (if needed)
+        if (lastInterestAdjustment < today) {
+            manager.adjustInterest();
+            tasksCompleted++;
+        }
+
+        // TODO: check gas and abort early when running out
+        // reward ended stakes to people
+        for (uint64 i = lastCompletedDistribution;i <= today;i++) {
+            while (stakesByEndDay[i].length > 0) {
+                currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
+                stakesByEndDay[i].pop();
+                if (currentStake.owner != address(0)) {
+                    accountStake = stakesByAccount[currentStake.owner][currentStake.index];
+                    delete(stakesByAccount[currentStake.owner][currentStake.index]);
+
+                    _send(address(this), currentStake.owner, accountStake.principal, "", "", true);
+                    _mint(currentStake.owner, _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal), "", "");
+
+                    tasksCompleted++;
+                }
+            }
+        }
+
+        _rewardForMine(tasksCompleted);
+    }
+
+    function _rewardForMine(uint64 tasksCompleted) private {
+        _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
+
+        emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
     }
 
     function transfer(address recipient, uint256 amount) public virtual override check(Sensitivity.Basic, recipient) returns (bool) {

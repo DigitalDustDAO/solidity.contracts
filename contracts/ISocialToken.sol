@@ -18,10 +18,23 @@ interface ISocialToken {
         int256 interest
     );
 
+    event MiningReward (
+        address indexed account,
+        uint64 tasksCompleted,
+        uint256 reward
+    );
+
     enum Sensitivity {
         Basic,
         Community,
         Council,
         Manager
     }
+
+    function setManager(address newManager) external;
+    function setNFT(address newNFT) external;
+    function startInterestAdjustmentTask() external;
+    function changeMatainanceSensitivity(Sensitivity newLevel) external;
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
+ 
 }

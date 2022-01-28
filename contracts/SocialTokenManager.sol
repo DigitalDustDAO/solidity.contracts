@@ -50,7 +50,7 @@ contract SocialTokenManager is ISocialTokenManager {
             "Contract must support ISocialTokenManager"
         );
 
-        token.setManager(contractAddr, ISocialToken.Sensitivity.Council);
+        token.setManager(contractAddr);
         return contractAddr;
     }
 
@@ -65,10 +65,13 @@ contract SocialTokenManager is ISocialTokenManager {
     }
 
     function authorize(address source, address target, uint8 level) external view returns(bool) {
-        if (level <= 2) { //user
+        if (level <= 1) { // user
             return source == target 
                 ? dao.rightsOf(daoId, source) >= 100 && dao.penaltyOf(daoId, source) == 0
                 : dao.rightsOf(daoId, source) >= 100 && dao.rightsOf(daoId, target) >= 100 && dao.penaltyOf(daoId, source) == 0 && dao.penaltyOf(daoId, target) == 0;
+        }
+        if (level <= 2) { // community
+            return true;
         }
         else if (level == 3) { // council
             return source == target 
@@ -79,4 +82,9 @@ contract SocialTokenManager is ISocialTokenManager {
             return false;
         }
     }
+
+        function adjustInterest() external {
+            // not implemented
+        }
+
 }

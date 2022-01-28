@@ -13,4 +13,5 @@ interface ISocialTokenManager is IERC165 {
     // function setNftApr(uint32 apr) external returns (uint32);  // TODO: implement in LTST first
 
     function authorize(address source, address target, uint8 level) external view returns(bool);
+    function adjustInterest() external;
 }
