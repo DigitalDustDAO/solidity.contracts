@@ -28,6 +28,7 @@ interface ISocialToken {
         Basic,
         Community,
         Council,
+        NFTContract,
         Manager
     }
 
@@ -35,5 +36,5 @@ interface ISocialToken {
     function setNFT(address newNFT) external;
     function changeMatainanceSensitivity(Sensitivity newLevel, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
- 
+    function forgingExpense(address account, int256 amount) external;
 }

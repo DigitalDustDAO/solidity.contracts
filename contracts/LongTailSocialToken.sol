@@ -48,9 +48,15 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     modifier check(Sensitivity level, address target) {
 
-        require((level == Sensitivity.Manager && _msgSender() == address(manager)) 
-            || manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
-        
+        if (level == Sensitivity.Manager) {
+            require(_msgSender() == address(manager));
+        }
+        else if (level == Sensitivity.NFTContract) {
+            require(_msgSender() == address(nftContract));
+        }
+        else {
+            require(manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
+        }
 
         if (level == Sensitivity.Community) {
             require(balanceOf(_msgSender()) > 0);
@@ -247,7 +253,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             tasksCompleted++;
         }
 
-        // TODO: check gas and abort early when running out
         // reward ended stakes to people
         for (uint64 i = lastCompletedDistribution;i <= today;i++) {
             while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
@@ -267,8 +272,16 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         if (tasksCompleted > 0) {
             _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
-
             emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
+        }
+    }
+
+    function forgingExpense(address account, int256 amount) external check(Sensitivity.NFTContract, _msgSender()) {
+        if (amount > 0) {
+            _burn(account, amount, "", "");
+        }
+        else if (amount < 0) {
+            _mint(account, -amount, "", "");
         }
     }
 
