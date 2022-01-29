@@ -2,7 +2,10 @@
 
 pragma solidity 0.8.11;
 
-interface ISocialToken {
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
+
+interface ISocialToken is IERC165 {
     event Staked (
         address indexed account,
         uint64 indexed duration,

@@ -7,7 +7,7 @@ import "./ISocialTokenManager.sol";
 import "./ISocialTokenNFT.sol";
 import "./ISocialToken.sol";
 
-contract LongTailSocialToken is ISocialToken, ERC777 {
+abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
 // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
@@ -42,8 +42,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     ISocialTokenManager private manager;
     uint64 private rewardPerMiningTask;
-    uint32 private miningGasReserve;
     ISocialTokenNFT private nftContract;
+    uint64 private miningGasReserve;
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -73,24 +73,18 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external {
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
-        if (base > 0) {
-            baseInterestRate = base;
-        }
+        baseInterestRate = base;
+        linearInterestBonus = linear;
+        quadraticInterestBonus = quadratic;
+        rewardPerMiningTask = miningReward;
+        miningGasReserve = miningReserve;
+    }
 
-        if (linear > 0) {
-            linearInterestBonus = linear;
-        }
-
-        if (quadratic > 0) {
-            quadraticInterestBonus = quadratic;
-        }
-
-        if (miningReward > 0) {
-            rewardPerMiningTask = miningReward;
-        }
+    function getInterestRates() public view returns(uint64, uint64, uint64, uint64, uint64) {
+        return (baseInterestRate, linearInterestBonus, quadraticInterestBonus, rewardPerMiningTask, miningGasReserve);
     }
 
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
@@ -166,61 +160,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         } 
     }
 
-    function getStakeStart (address account, uint64 id) public view returns(uint64) {
-        return stakesByAccount[account][id].start;
-    }
-
-    function getStakeEnd (address account, uint64 id) public view returns(uint64) {
-        return stakesByAccount[account][id].end;
-    }
-
-    function getStakeInterestRate (address account, uint64 id) public view returns(uint32) {
-        return stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate;
-    }
-
-    function getStakePrincipal (address account, uint64 id) public view returns(uint256) {
-        return stakesByAccount[account][id].principal;
-    }
-
-    function getCurrentInterestRates() public view returns(uint64, uint64, uint64) {
-        return (baseInterestRate, linearInterestBonus, quadraticInterestBonus);
-    }
-
-    function getCurrentDay() public view returns(uint64) {
-        return uint64((block.timestamp - START_TIME) / 1 days);
-    }
-
-    function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
-        uint64 halfStakeLength = (end - start) / 2;
-        uint64 timeStaked = getCurrentDay() - start;
-        uint256 payoff = _fullInterest(end - start, interestRate, principal);
-        if (timeStaked < halfStakeLength) {
-            return (false, (payoff * timeStaked) / halfStakeLength);
-        }
-        else {
-            return (true, (payoff * (timeStaked - halfStakeLength)) / halfStakeLength);
-        }
-    }
-
-    function _fullInterest(uint64 duration, uint32 interestRate, uint256 principal) private pure returns(uint256) {
-        return (interestRate * duration * principal) / type(uint32).max;
-    }
-
-    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
-        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
-        // cap the value at what can be held in a uint64 and downcast it into a uint32
-        return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
-    }
-
-    function getNumMiningTasks() public view returns(uint256) {
-        uint64 today = getCurrentDay();
-        uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
-        for (uint64 i = lastCompletedDistribution;i <= today;i++) {
-            numTasks = numTasks + stakesByEndDay[i].length;
-        }
-        return numTasks;
-    }
-
     function mine() public {
         require(balanceOf(_msgSender()) > 0);
 
@@ -258,7 +197,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function forgingExpense(address account, int256 amount) external {
+    function forge(address account, int256 amount) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
         if (amount > 0) {
             _burn(account, uint256(amount), "", "");
@@ -268,12 +207,63 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function getStakeStart (address account, uint64 id) public view returns(uint64) {
+        return stakesByAccount[account][id].start;
+    }
+
+    function getStakeEnd (address account, uint64 id) public view returns(uint64) {
+        return stakesByAccount[account][id].end;
+    }
+
+    function getStakeInterestRate (address account, uint64 id) public view returns(uint32) {
+        return stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate;
+    }
+
+    function getStakePrincipal (address account, uint64 id) public view returns(uint256) {
+        return stakesByAccount[account][id].principal;
+    }
+
+    function getCurrentDay() public view returns(uint64) {
+        return uint64((block.timestamp - START_TIME) / 1 days);
+    }
+
+    function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
+        uint64 halfStakeLength = (end - start) / 2;
+        uint64 timeStaked = getCurrentDay() - start;
+        uint256 payoff = _fullInterest(end - start, interestRate, principal);
+        if (timeStaked < halfStakeLength) {
+            return (false, (payoff * timeStaked) / halfStakeLength);
+        }
+        else {
+            return (true, (payoff * (timeStaked - halfStakeLength)) / halfStakeLength);
+        }
+    }
+
+    function _fullInterest(uint64 duration, uint32 interestRate, uint256 principal) private pure returns(uint256) {
+        return (interestRate * duration * principal) / type(uint32).max;
+    }
+
+    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
+        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
+        // cap the value at what can be held in a uint64 and downcast it into a uint32
+        return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
+    }
+
+    function getNumMiningTasks() public view returns(uint256) {
+        uint64 today = getCurrentDay();
+        uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
+        for (uint64 i = lastCompletedDistribution;i <= today;i++) {
+            numTasks = numTasks + stakesByEndDay[i].length;
+        }
+        return numTasks;
+    }
+
+    function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
         manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
         return super.transfer(recipient, amount);
     }
 
-    function send(address recipient, uint256 amount, bytes memory data) public virtual override {
+    function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
         manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
         super.send(recipient, amount, data);
     }
