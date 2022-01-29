@@ -24,17 +24,8 @@ interface ISocialToken {
         uint256 reward
     );
 
-    enum Sensitivity {
-        Basic,
-        Community,
-        Council,
-        NFTContract,
-        Manager
-    }
-
-    function setManager(address newManager) external;
+    function setManager(address newManager, bool startInterestAdjustment) external;
     function setNFT(address newNFT) external;
-    function changeMatainanceSensitivity(Sensitivity newLevel, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
     function forgingExpense(address account, int256 amount) external;
 }

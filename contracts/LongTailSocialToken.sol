@@ -44,25 +44,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint64 private rewardPerMiningTask;
     uint32 private miningGasReserve;
     ISocialTokenNFT private nftContract;
-    Sensitivity private matainanceSensitivity;
-
-    modifier check(Sensitivity level, address target) {
-
-        if (level == Sensitivity.Manager) {
-            require(_msgSender() == address(manager));
-        }
-        else if (level == Sensitivity.NFTContract) {
-            require(_msgSender() == address(nftContract));
-        }
-        else {
-            require(manager.authorize(_msgSender(), target, uint8(level)), "Not authorized");
-        }
-
-        if (level == Sensitivity.Community) {
-            require(balanceOf(_msgSender()) > 0);
-        }
-        _;
-    }
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -71,7 +52,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         START_TIME = block.timestamp - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
-        matainanceSensitivity = Sensitivity.Council;
 
         // Pick some default values
         baseInterestRate = 50;
@@ -80,22 +60,22 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         rewardPerMiningTask = 50;
     }
 
-    function setManager(address newManager) external check(Sensitivity.Manager, _msgSender()) {
+    function setManager(address newManager, bool startInterestAdjustment) external {
+        require(_msgSender() == address(manager));
         manager = ISocialTokenManager(newManager);
-    }
-
-    function setNFT(address newNFT) external check(Sensitivity.Manager, _msgSender()) {
-        nftContract = ISocialTokenNFT(newNFT);
-    }
-
-    function changeMatainanceSensitivity(Sensitivity newLevel, bool startInterestAdjustment) external check(matainanceSensitivity, _msgSender()) {
-        matainanceSensitivity = newLevel;
-
+                
         if (startInterestAdjustment)
             lastInterestAdjustment = 0;
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external check(matainanceSensitivity, _msgSender()) {
+    function setNFT(address newNFT) external {
+        require(_msgSender() == address(manager));
+        nftContract = ISocialTokenNFT(newNFT);
+    }
+
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+
         if (base > 0) {
             baseInterestRate = base;
         }
@@ -241,7 +221,9 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return numTasks;
     }
 
-    function mine() public check(Sensitivity.Community, _msgSender()) {
+    function mine() public {
+        require(balanceOf(_msgSender()) > 0);
+
         uint64 today = getCurrentDay();
         uint64 tasksCompleted = 0;
         StakeDataPointer memory currentStake;
@@ -276,20 +258,23 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function forgingExpense(address account, int256 amount) external check(Sensitivity.NFTContract, _msgSender()) {
+    function forgingExpense(address account, int256 amount) external {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
         if (amount > 0) {
-            _burn(account, amount, "", "");
+            _burn(account, uint256(amount), "", "");
         }
         else if (amount < 0) {
-            _mint(account, -amount, "", "");
+            _mint(account, uint256(-amount), "", "");
         }
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override check(Sensitivity.Basic, recipient) returns (bool) {
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
         return super.transfer(recipient, amount);
     }
 
-    function send(address recipient, uint256 amount, bytes memory data) public virtual override check(Sensitivity.Basic, recipient) {
+    function send(address recipient, uint256 amount, bytes memory data) public virtual override {
+        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
         super.send(recipient, amount, data);
     }
 }
