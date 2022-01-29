@@ -38,10 +38,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint64 private baseInterestRate;
     uint64 private linearInterestBonus;
     uint64 private quadraticInterestBonus;
-    uint64 private rewardPerMiningTask;
 
 
     ISocialTokenManager private manager;
+    uint64 private rewardPerMiningTask;
+    uint32 private miningGasReserve;
     ISocialTokenNFT private nftContract;
     Sensitivity private matainanceSensitivity;
 
@@ -81,12 +82,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         nftContract = ISocialTokenNFT(newNFT);
     }
 
-    function startInterestAdjustmentTask() external check(matainanceSensitivity, _msgSender()) {
-        lastInterestAdjustment = 0;
-    }
-
-    function changeMatainanceSensitivity(Sensitivity newLevel) external check(matainanceSensitivity, _msgSender()) {
+    function changeMatainanceSensitivity(Sensitivity newLevel, bool startInterestAdjustment) external check(matainanceSensitivity, _msgSender()) {
         matainanceSensitivity = newLevel;
+
+        if (startInterestAdjustment)
+            lastInterestAdjustment = 0;
     }
 
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external check(matainanceSensitivity, _msgSender()) {
@@ -250,7 +250,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // TODO: check gas and abort early when running out
         // reward ended stakes to people
         for (uint64 i = lastCompletedDistribution;i <= today;i++) {
-            while (stakesByEndDay[i].length > 0) {
+            while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
                 currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
                 stakesByEndDay[i].pop();
                 if (currentStake.owner != address(0)) {
@@ -265,13 +265,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             }
         }
 
-        _rewardForMine(tasksCompleted);
-    }
+        if (tasksCompleted > 0) {
+            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
 
-    function _rewardForMine(uint64 tasksCompleted) private {
-        _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
-
-        emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
+            emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
+        }
     }
 
     function transfer(address recipient, uint256 amount) public virtual override check(Sensitivity.Basic, recipient) returns (bool) {

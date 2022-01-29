@@ -33,8 +33,7 @@ interface ISocialToken {
 
     function setManager(address newManager) external;
     function setNFT(address newNFT) external;
-    function startInterestAdjustmentTask() external;
-    function changeMatainanceSensitivity(Sensitivity newLevel) external;
+    function changeMatainanceSensitivity(Sensitivity newLevel, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
  
 }
