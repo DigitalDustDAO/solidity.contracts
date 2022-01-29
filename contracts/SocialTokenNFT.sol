@@ -14,4 +14,8 @@ abstract contract SocialTokenNFT is ISocialTokenNFT, ERC165 {
             interfaceId == type(ISocialTokenNFT).interfaceId
             || super.supportsInterface(interfaceId);
     }
+
+    function interestBonus(address account) external view returns(uint64) {
+        return 0;
+    }
 }

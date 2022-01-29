@@ -6,16 +6,13 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./ISocialTokenManager.sol";
 import "./ISocialToken.sol";
-//import "./SocialTokenNFT.sol";
 import "./ISocialTokenNFT.sol";
 import "./IDigitalDustDAO.sol";
 
-contract SocialTokenManager is ISocialTokenManager, Context, ERC165 {
+abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     IDigitalDustDAO public dao;
-    ISocialToken public tokenContract;
-    //bytes4 iSocialTokenHash;
-    ISocialTokenNFT public nftContract;
-    //bytes4 iSocialTokenNFTHash;
+    ISocialToken private tokenContract;
+    ISocialTokenNFT private nftContract;
 
     uint256 daoId;
 
@@ -25,21 +22,7 @@ contract SocialTokenManager is ISocialTokenManager, Context, ERC165 {
     constructor(address dao_, uint256 daoId_) {
         dao = IDigitalDustDAO(dao_);
         daoId = daoId_;
-        //tokenContract = ISocialToken(address(0));
-
-        // iSocialTokenHash = type(ISocialTokenManager).interfaceId;
-        // iSocialTokenNFTHash = type(ISocialTokenNFT).interfaceId;
     }
-
-    modifier init2 {
-        require(initialized, "Token contracts not init2");
-        _;
-    }
-
-    // modifier onlyElders {
-    //     require(dao.rightsOf(daoId, _msgSender()) >= 500, "Not enough rights to update");
-    //     _;
-    // }
 
     /**
      * @dev See {IERC165-supportsInterface}.
@@ -55,28 +38,16 @@ contract SocialTokenManager is ISocialTokenManager, Context, ERC165 {
             && ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId));
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
+
+        initialized = true;
     }
 
-    function setTokenManager(address contractAddr) public init2 returns (address) {
-        this.authorize(_msgSender(), Sensitivity.Elder);
-        // require(
-        //     SocialTokenManager(contractAddr).supportsInterface(iSocialTokenHash),
-        //     "Contract must support ISocialTokenManager"
-        // );
-
-        tokenContract.setManager(contractAddr, false);
-        return contractAddr;
+    function getTokenContract() external view returns(ISocialToken) {
+        return tokenContract;
     }
 
-    function setNFT(address contractAddr) public init2 returns (address) {
-        this.authorize(_msgSender(), Sensitivity.Elder);
-        // require(
-        //     SocialTokenNFT(contractAddr).supportsInterface(iSocialTokenNFTHash),
-        //     "Contract must support ISocialTokenNFT"
-        // );
-
-        tokenContract.setNFT(contractAddr);
-        return contractAddr;
+    function getNftContract() external view returns(ISocialTokenNFT) {
+        return nftContract;
     }
 
     function authorize(address source, address target, Sensitivity level) external view {

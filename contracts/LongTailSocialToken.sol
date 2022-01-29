@@ -34,6 +34,8 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
     uint64 private lastInterestAdjustment;
     uint64 private lastCompletedDistribution;
+    uint64 private rewardPerMiningTask;
+    uint64 private miningGasReserve;
 
     uint64 private baseInterestRate;
     uint64 private linearInterestBonus;
@@ -41,9 +43,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
 
     ISocialTokenManager private manager;
-    uint64 private rewardPerMiningTask;
-    ISocialTokenNFT private nftContract;
-    uint64 private miningGasReserve;
+    //ISocialTokenNFT private nftContract;
 
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -66,11 +66,6 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
                 
         if (startInterestAdjustment)
             lastInterestAdjustment = 0;
-    }
-
-    function setNFT(address newNFT) external {
-        require(_msgSender() == address(manager));
-        nftContract = ISocialTokenNFT(newNFT);
     }
 
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external {
@@ -244,7 +239,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
-        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(nftContract.interestBonus(account));
+        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(manager.getNftContract().interestBonus(account));
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
     }

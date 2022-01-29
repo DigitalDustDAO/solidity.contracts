@@ -28,7 +28,6 @@ interface ISocialToken is IERC165 {
     );
 
     function setManager(address newManager, bool startInterestAdjustment) external;
-    function setNFT(address newNFT) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
     function forgingExpense(address account, int256 amount) external;
 }
