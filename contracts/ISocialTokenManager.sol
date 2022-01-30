@@ -18,12 +18,6 @@ interface ISocialTokenManager is IERC165 {
         Manager
     }
 
-    function setTokenManager(address addr) external returns (address);
-    // function setTokenApr(uint32 apr) external returns (uint32);  // TODO: implement in LTST first
-
-    function setNFT(address addr) external returns (address);
-    // function setNftApr(uint32 apr) external returns (uint32);  // TODO: implement in LTST first
-
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
 

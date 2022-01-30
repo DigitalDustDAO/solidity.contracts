@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./ISocialTokenNFT.sol";
 
 abstract contract SocialTokenNFT is ISocialTokenNFT, ERC165 {
+
+    ISocialTokenManager private manager;
+
     /**
      * @dev See {IERC165-supportsInterface}.
      */
@@ -17,5 +20,10 @@ abstract contract SocialTokenNFT is ISocialTokenNFT, ERC165 {
 
     function interestBonus(address account) external view returns(uint64) {
         return 0;
+    }
+
+    function setManager(address newManager) external {
+        require(_msgSender() == address(manager));
+        manager = ISocialTokenManager(newManager);
     }
 }

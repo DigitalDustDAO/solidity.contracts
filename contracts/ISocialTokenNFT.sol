@@ -7,5 +7,5 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 interface ISocialTokenNFT is IERC165 {
     
     function interestBonus(address account) external view returns(uint64);
-
+    function setManager(address newManager) external;
 }

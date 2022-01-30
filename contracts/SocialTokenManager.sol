@@ -34,12 +34,24 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function initialize(address tokenAddr, address nftAddr) public {
+        this.authorize(_msgSender(), Sensitivity.Elder);
         require(ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId)
             && ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId));
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
 
         initialized = true;
+    }
+
+    // Time to pass to a new manager
+    function deprecateSelf(address newManager, address sendTo, bool startInterestAdjustment) public {
+        this.authorize(_msgSender(), Sensitivity.Elder);
+        require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId));
+
+        tokenContract.setManager(newManager, startInterestAdjustment);
+        nftContract.setManager(newManager);
+
+        selfdestruct(sendTo);
     }
 
     function getTokenContract() external view returns(ISocialToken) {
