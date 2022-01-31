@@ -12,8 +12,8 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
         address owner;
-        uint32 interestRate;
-        uint64 index;
+        uint64 interestRate;
+        uint32 index;
    }
 
     struct StakeData {
@@ -43,8 +43,8 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
 
     ISocialTokenManager private manager;
-    //ISocialTokenNFT private nftContract;
 
+    // TODO: mint tokens
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
 
@@ -62,6 +62,8 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
 
     function setManager(address newManager, bool startInterestAdjustment) external {
         require(_msgSender() == address(manager));
+        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId));
+
         manager = ISocialTokenManager(newManager);
                 
         if (startInterestAdjustment)
@@ -95,14 +97,14 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         require(balanceOf(stakeAccount) >= amount);
         require(numberOfDays <= MAXIMUM_STAKE_DAYS); 
         require(numberOfDays >= MININUM_STAKE_DAYS);
-        require(accountIndex <= type(uint64).max);
+        require(accountIndex <= type(uint32).max);
         require(endDayIndex <= type(uint128).max);
 
-        // populate stake data
+        // populate i data
         stakesByEndDay[endDay].push(StakeDataPointer(
             stakeAccount,
             calculateInterestRate(stakeAccount, numberOfDays),
-            uint64(accountIndex)
+            uint32(accountIndex)
         ));
 
         stakesByAccount[stakeAccount].push(StakeData(
@@ -115,12 +117,12 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         // send 
         _send(stakeAccount, address(this), amount, "", "", true);
 
-        emit Staked(stakeAccount, numberOfDays, endDay, amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint64(accountIndex));
+        emit Staked(stakeAccount, numberOfDays, endDay, amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint32(accountIndex));
 
-        return uint64(accountIndex);
+        return uint32(accountIndex);
     }
 
-    function unstake(uint64 stakeNumber) public {
+    function unstake(uint32 stakeNumber) public {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 principal = stakesByAccount[stakeAccount][stakeNumber].principal;
@@ -135,7 +137,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
             stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index].interestRate,
             stakesByAccount[stakeAccount][stakeNumber].principal);
 
-        // delete the stake data
+        // delete the i data
         delete(stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index]);
         delete(stakesByAccount[stakeAccount][stakeNumber]);
 
@@ -187,6 +189,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         }
 
         if (tasksCompleted > 0) {
+            // TODO: send pool tokens if available
             _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
             emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
         }
@@ -210,7 +213,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].end;
     }
 
-    function getStakeInterestRate (address account, uint64 id) public view returns(uint32) {
+    function getStakeInterestRate (address account, uint64 id) public view returns(uint64) {
         return stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate;
     }
 
@@ -222,7 +225,22 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         return uint64((block.timestamp - START_TIME) / 1 days);
     }
 
-    function calculateInterest(uint64 start, uint64 end, uint32 interestRate, uint256 principal) public view returns(bool, uint256) {
+    function getVotingPower(address account) external view returns(uint256) {
+        uint256 votingPower = 0;
+        for(uint32 i = 0;i < stakesByAccount[account].length;i++) {
+            if (stakesByAccount[account][i].principal > 0) {
+                votingPower = votingPower
+                    + (_votingWeight(stakesByAccount[account][i].start, stakesByAccount[account][i].end, getCurrentDay()) 
+                    * _fullInterest(stakesByAccount[account][i].start - stakesByAccount[account][i].end, 
+                    stakesByEndDay[stakesByAccount[account][i].end][stakesByAccount[account][i].index].interestRate,
+                    stakesByAccount[account][i].principal));
+            }
+        }
+
+        return votingPower;
+    }
+
+    function calculateInterest(uint64 start, uint64 end, uint64 interestRate, uint256 principal) public view returns(bool, uint256) {
         uint64 halfStakeLength = (end - start) / 2;
         uint64 timeStaked = getCurrentDay() - start;
         uint256 payoff = _fullInterest(end - start, interestRate, principal);
@@ -234,14 +252,23 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _fullInterest(uint64 duration, uint32 interestRate, uint256 principal) private pure returns(uint256) {
-        return (interestRate * duration * principal) / type(uint32).max;
+    function _votingWeight(uint64 start, uint64 end, uint64 currentDay) private pure returns(uint64){
+        if (currentDay - start <= (end - start) / 2) {
+            return (currentDay - start) * 2;
+        }
+        else {
+            return ((end - start) - (currentDay - start)) * 2;
+        }
     }
 
-    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint32) {
+    function _fullInterest(uint64 duration, uint64 interestRate, uint256 principal) private pure returns(uint256) {
+        return (interestRate * duration * principal) / type(uint64).max;
+    }
+
+    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint64) {
         uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(manager.getNftContract().interestBonus(account));
         // cap the value at what can be held in a uint64 and downcast it into a uint32
-        return interest > type(uint64).max ? type(uint32).max : uint32(interest / type(uint32).max);
+        return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }
 
     function getNumMiningTasks() public view returns(uint256) {

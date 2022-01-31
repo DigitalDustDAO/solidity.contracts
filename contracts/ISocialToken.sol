@@ -11,8 +11,8 @@ interface ISocialToken is IERC165 {
         uint64 indexed duration,
         uint64 indexed endDay,
         uint256 amount,
-        uint32 interestRate,
-        uint64 id
+        uint64 interestRate,
+        uint32 id
     );
 
     event RedeemedStake (
