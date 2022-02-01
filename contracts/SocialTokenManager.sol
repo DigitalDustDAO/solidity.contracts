@@ -37,6 +37,7 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         this.authorize(_msgSender(), Sensitivity.Elder);
         require(ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId)
             && ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId));
+            
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
 

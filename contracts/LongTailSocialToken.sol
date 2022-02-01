@@ -41,7 +41,6 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
     uint64 private linearInterestBonus;
     uint64 private quadraticInterestBonus;
 
-
     ISocialTokenManager private manager;
 
     // TODO: mint tokens
@@ -58,6 +57,7 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         linearInterestBonus = 25;
         quadraticInterestBonus = 10;
         rewardPerMiningTask = 50;
+        miningGasReserve = 1500;
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
