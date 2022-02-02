@@ -9,19 +9,24 @@ import "./ISocialToken.sol";
 import "./ISocialTokenNFT.sol";
 import "./IDigitalDustDAO.sol";
 
-abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
-    IDigitalDustDAO public dao;
+contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
+    IDigitalDustDAO public daoContract;
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
 
     uint256 daoId;
 
     string constant private UNAUTHORIZED = "Not authorized";
+    string constant private INVALID_INTERFACE = "Invalid interface";
     bool private initialized;
 
     constructor(address dao_, uint256 daoId_) {
-        dao = IDigitalDustDAO(dao_);
+        daoContract = IDigitalDustDAO(dao_);
         daoId = daoId_;
+    }
+
+    function getInterfaceId() public pure returns (bytes4) {
+        return type(ISocialTokenManager).interfaceId;
     }
 
     /**
@@ -35,9 +40,11 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function initialize(address tokenAddr, address nftAddr) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId)
-            && ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId));
-            
+        require(
+            ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId) &&
+            ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId),
+            INVALID_INTERFACE
+        );
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
 
@@ -47,12 +54,16 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     // Time to pass to a new manager
     function deprecateSelf(address newManager, address payable sendTo, bool startInterestAdjustment) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId));
+        require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
         tokenContract.setManager(newManager, startInterestAdjustment);
         nftContract.setManager(newManager);
 
         selfdestruct(sendTo);
+    }
+
+    function getDaoContract() external view returns(IDigitalDustDAO) {
+        return daoContract;
     }
 
     function getTokenContract() external view returns(ISocialToken) {
@@ -65,13 +76,13 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address source, address target, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
-            require(dao.rightsOf(daoId, source) >= 100 && dao.rightsOf(daoId, target) >= 100 && dao.penaltyOf(daoId, source) == 0 && dao.penaltyOf(daoId, target) == 0, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 100 && daoContract.rightsOf(daoId, target) >= 100 && daoContract.penaltyOf(daoId, source) == 0 && daoContract.penaltyOf(daoId, target) == 0, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Council) {
-            require(dao.rightsOf(daoId, source) >= 400 && dao.rightsOf(daoId, target) >= 400 && dao.penaltyOf(daoId, source) < 400 && dao.penaltyOf(daoId, target) < 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 400 && daoContract.rightsOf(daoId, target) >= 400 && daoContract.penaltyOf(daoId, source) < 400 && daoContract.penaltyOf(daoId, target) < 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(dao.rightsOf(daoId, source) >= 500 && dao.rightsOf(daoId, target) >= 500 && dao.penaltyOf(daoId, source) < 500 && dao.penaltyOf(daoId, target) < 500, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 500 && daoContract.rightsOf(daoId, target) >= 500 && daoContract.penaltyOf(daoId, source) < 500 && daoContract.penaltyOf(daoId, target) < 500, UNAUTHORIZED);
         }
         else { // invalid input, deny
             require(false, UNAUTHORIZED);
@@ -80,16 +91,16 @@ abstract contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address source, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
-            require(dao.rightsOf(daoId, source) >= 100 && dao.penaltyOf(daoId, source) == 0, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 100 && daoContract.penaltyOf(daoId, source) == 0, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Council) {
-            require(dao.rightsOf(daoId, source) >= 400 && dao.penaltyOf(daoId, source) < 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 400 && daoContract.penaltyOf(daoId, source) < 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(dao.rightsOf(daoId, source) >= 500 && dao.penaltyOf(daoId, source) < 500, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 500 && daoContract.penaltyOf(daoId, source) < 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Maintainance) {
-            require(dao.rightsOf(daoId, source) >= 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(daoId, source) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.NFTContract) {
             require(source == address(nftContract), UNAUTHORIZED);
