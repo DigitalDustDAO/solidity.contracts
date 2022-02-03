@@ -16,9 +16,9 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     mapping(uint256 => bool) private _activeProjects;
 
     constructor() ERC1155WithAccess("") {
-        _balances[0][_msgSender()].rights = 1000;
+        _balances[0][_msgSender()].rights = type(uint64).max;
 
-        emit SetRights(0, address(0), _msgSender(), 1000);
+        emit SetRights(0, address(0), _msgSender(), type(uint64).max);
     }
 
     function rightsOf(uint256 id, address account) public view returns (uint64 rights) {
