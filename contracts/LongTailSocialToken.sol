@@ -237,15 +237,17 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         return uint64((block.timestamp - START_TIME) / 1 days);
     }
 
+    // Need to test how much gas this function uses.
     function getVotingPower(address account) external view returns(uint256) {
         uint256 votingPower = 0;
-        for(uint32 i = 0;i < stakesByAccount[account].length;i++) {
-            if (stakesByAccount[account][i].principal > 0) {
-                votingPower = votingPower
-                    + (_votingWeight(stakesByAccount[account][i].start, stakesByAccount[account][i].end, getCurrentDay()) 
-                    * _fullInterest(stakesByAccount[account][i].start - stakesByAccount[account][i].end, 
-                    stakesByEndDay[stakesByAccount[account][i].end][stakesByAccount[account][i].index].interestRate,
-                    stakesByAccount[account][i].principal));
+        StakeData memory thisStake;
+        uint32 finalDepth = stakesByAccount[account].length <= 256 ? 0 : uint32(stakesByAccount[account].length - 256);
+
+        for(uint32 i = uint32(stakesByAccount[account].length - 1);i > finalDepth;i--) {
+            thisStake = stakesByAccount[account][i];
+            if (thisStake.principal > 0) {
+                votingPower = votingPower + (_votingWeight(thisStake.start, thisStake.end, getCurrentDay()) 
+                    * _fullInterest(thisStake.start - thisStake.end,  stakesByEndDay[thisStake.end][thisStake.index].interestRate, thisStake.principal));
             }
         }
 

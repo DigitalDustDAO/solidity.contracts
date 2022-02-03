@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
  * @dev Implementation of the basic standard multi-token.
@@ -22,9 +21,9 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
 
     struct MemberBalance {
-        uint64 rights;
-        uint64 penalty;
-        uint128 balance;
+        uint32 rights;
+        uint32 penalty;
+        uint192 balance;
     }
 
     // Mapping from token ID to account balances
@@ -53,6 +52,21 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
             super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @dev Returns the downcasted uint192 from uint256, reverting on
+     * overflow (when the input is greater than largest uint192).
+     *
+     * Counterpart to Solidity's `uint192` operator.
+     *
+     * Requirements:
+     *
+     * - input must fit into 192 bits
+     */
+    function toUint192(uint256 value) internal pure returns (uint192) {
+        require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
+        return uint192(value);
+    }
+    
     /**
      * @dev See {IERC1155MetadataURI-uri}.
      *
@@ -177,12 +191,12 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         _beforeTokenTransfer(operator, from, to, _asSingletonArray(id), _asSingletonArray(amount), data);
 
-        uint128 fromBalance = _balances[id][from].balance;
+        uint192 fromBalance = _balances[id][from].balance;
         require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
         unchecked {
-            _balances[id][from].balance = fromBalance - SafeCast.toUint128(amount);
+            _balances[id][from].balance = fromBalance - toUint192(amount);
         }
-        _balances[id][to].balance += SafeCast.toUint128(amount);
+        _balances[id][to].balance += toUint192(amount);
 
         emit TransferSingle(operator, from, to, id, amount);
 
@@ -215,9 +229,9 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         for (uint256 i = 0; i < ids.length; ++i) {
             uint256 id = ids[i];
-            uint128 amount = SafeCast.toUint128(amounts[i]);
+            uint192 amount = toUint192(amounts[i]);
 
-            uint128 fromBalance = _balances[id][from].balance;
+            uint192 fromBalance = _balances[id][from].balance;
             require(fromBalance >= amount, "ERC1155: insufficient balance for transfer");
             unchecked {
                 _balances[id][from].balance = fromBalance - amount;
@@ -276,7 +290,7 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         _beforeTokenTransfer(operator, address(0), to, _asSingletonArray(id), _asSingletonArray(amount), data);
 
-        _balances[id][to].balance += SafeCast.toUint128(amount);
+        _balances[id][to].balance += toUint192(amount);
         emit TransferSingle(operator, address(0), to, id, amount);
 
         _doSafeTransferAcceptanceCheck(operator, address(0), to, id, amount, data);
@@ -305,7 +319,7 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
         _beforeTokenTransfer(operator, address(0), to, ids, amounts, data);
 
         for (uint256 i = 0; i < ids.length; i++) {
-            _balances[ids[i]][to].balance += SafeCast.toUint128(amounts[i]);
+            _balances[ids[i]][to].balance += toUint192(amounts[i]);
         }
 
         emit TransferBatch(operator, address(0), to, ids, amounts);
@@ -332,10 +346,10 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         _beforeTokenTransfer(operator, from, address(0), _asSingletonArray(id), _asSingletonArray(amount), "");
 
-        uint128 fromBalance = _balances[id][from].balance;
+        uint192 fromBalance = _balances[id][from].balance;
         require(fromBalance >= amount, "ERC1155: burn amount exceeds balance");
         unchecked {
-            _balances[id][from].balance = fromBalance - SafeCast.toUint128(amount);
+            _balances[id][from].balance = fromBalance - toUint192(amount);
         }
 
         emit TransferSingle(operator, from, address(0), id, amount);
@@ -362,9 +376,9 @@ contract ERC1155WithAccess is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
-            uint128 amount = SafeCast.toUint128(amounts[i]);
+            uint192 amount = toUint192(amounts[i]);
 
-            uint128 fromBalance = _balances[id][from].balance;
+            uint192 fromBalance = _balances[id][from].balance;
             require(fromBalance >= amount, "ERC1155: burn amount exceeds balance");
             unchecked {
                 _balances[id][from].balance = fromBalance - amount;
