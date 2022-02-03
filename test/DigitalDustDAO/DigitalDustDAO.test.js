@@ -4,6 +4,7 @@ const DigitalDustDAO = artifacts.require("DigitalDustDAO");
 
 contract('DigitalDustDAO', (accounts) => {
     let contract;
+    const maxUint32 = 2**32-1;
     const [creator, userA, userB, ...others] = accounts;
     const RIGHTS = {
         none: 0,
@@ -19,7 +20,7 @@ contract('DigitalDustDAO', (accounts) => {
 
     it('Constructor should assign rights to creator', async () => {
         const response = await contract.rightsOf(0, creator);
-        expect(response.toNumber()).to.equal(1000);
+        expect(response.toNumber()).to.equal(maxUint32);
     });
 
     it.skip('should emit SetRights', async () => {

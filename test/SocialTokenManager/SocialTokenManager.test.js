@@ -22,7 +22,7 @@ contract('SocialTokenManager', (accounts) => {
     before(async () => {
         DAO = await DigitalDustDAO.deployed();
         STM = await SocialTokenManager.deployed();
-        STNFT = await SocialTokenNFT.deployed();
+        // STNFT = await SocialTokenNFT.deployed();
     });
 
     describe('supportsInterface', () => {
