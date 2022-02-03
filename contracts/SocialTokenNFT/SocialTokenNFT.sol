@@ -4,9 +4,9 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./ISocialTokenManager.sol";
-import "./ISocialTokenNFT.sol";
-import "./ISocialToken.sol";
+import "../SocialTokenManager/ISocialTokenManager.sol";
+import "../SocialTokenNFT/ISocialTokenNFT.sol";
+import "../SocialToken/ISocialToken.sol";
 
 abstract contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
 

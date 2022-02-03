@@ -9,7 +9,7 @@ contract('SocialTokenManager', (accounts) => {
     const tokenAddress = '0x0000000000000000000000000000000000000123';
     const nftAddress = '0x0000000000000000000000000000000000000321';
     const daoProjectId = 1000;
-    let DAO, STM;
+    let DAO, STM, STNFT;
     const [creator, userA, userB, ...others] = accounts;
     const RIGHTS = {
         none: 0,
@@ -22,10 +22,11 @@ contract('SocialTokenManager', (accounts) => {
     before(async () => {
         DAO = await DigitalDustDAO.deployed();
         STM = await SocialTokenManager.deployed();
+        STNFT = await SocialTokenNFT.deployed();
     });
 
     describe('supportsInterface', () => {
-        it.skip('Should approve ISocialTokenManager', async () => {
+        it('Should approve ISocialTokenManager', async () => {
             // TODO: learn how to build ISocialTokenManager interface outside of solidity
             const iSocialTokenInterfaceId = await STM.getInterfaceId();
             const response = await STM.supportsInterface(iSocialTokenInterfaceId);
@@ -58,7 +59,7 @@ contract('SocialTokenManager', (accounts) => {
         describe.skip('(source, target, level)', () => {
             let authorize, sensitivity;
             before(() => {
-                authorize = STM?.methods['authorize(address,uint8)'];
+                authorize = STM?.methods['authorize(address,address,uint8)'];
             });
         });
 

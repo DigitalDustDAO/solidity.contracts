@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.11;
 
-import "./ERC1155WithAccess.sol";
+import "../ERC1155WithAccess.sol";
 import "./IDigitalDustDAO.sol";
 
 contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {

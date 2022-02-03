@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.11;
 
-import "./ERC777.sol";
-import "./ISocialTokenManager.sol";
-import "./ISocialTokenNFT.sol";
+import "../ERC777.sol";
+import "../SocialTokenManager/ISocialTokenManager.sol";
+import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "./ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC777 {

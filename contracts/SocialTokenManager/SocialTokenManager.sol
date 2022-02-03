@@ -4,10 +4,10 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "./ISocialTokenManager.sol";
-import "./ISocialToken.sol";
-import "./ISocialTokenNFT.sol";
-import "./IDigitalDustDAO.sol";
+import "../SocialTokenManager/ISocialTokenManager.sol";
+import "../SocialToken/ISocialToken.sol";
+import "../SocialTokenNFT/ISocialTokenNFT.sol";
+import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
 contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     IDigitalDustDAO public daoContract;
