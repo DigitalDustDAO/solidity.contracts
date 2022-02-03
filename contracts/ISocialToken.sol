@@ -2,10 +2,10 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+//import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 
-interface ISocialToken is IERC165 {
+interface ISocialToken {
     event Staked (
         address indexed account,
         uint64 indexed duration,
@@ -28,6 +28,6 @@ interface ISocialToken is IERC165 {
     );
 
     function setManager(address newManager, bool startInterestAdjustment) external;
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward) external;
-    function forgingExpense(address account, int256 amount) external;
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external;
+    function forge(address account, int256 amount) external;
 }

@@ -7,7 +7,7 @@ import "./ISocialTokenManager.sol";
 import "./ISocialTokenNFT.sol";
 import "./ISocialToken.sol";
 
-abstract contract LongTailSocialToken is ISocialToken, ERC777 {
+contract LongTailSocialToken is ISocialToken, ERC777 {
 
 // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
@@ -79,6 +79,15 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
         rewardPerMiningTask = miningReward;
         miningGasReserve = miningReserve;
     }
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    // function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+    //     return 
+    //         interfaceId == type(ISocialToken).interfaceId
+    //         || super.supportsInterface(interfaceId);
+    // }
 
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
         // cache refrence variables
@@ -241,12 +250,12 @@ abstract contract LongTailSocialToken is ISocialToken, ERC777 {
     function getVotingPower(address account) external view returns(uint256) {
         uint256 votingPower = 0;
         StakeData memory thisStake;
-        uint32 finalDepth = stakesByAccount[account].length <= 256 ? 0 : uint32(stakesByAccount[account].length - 256);
+        uint256 finalDepth = stakesByAccount[account].length <= 256 ? 0 : stakesByAccount[account].length - 256;
 
-        for(uint32 i = uint32(stakesByAccount[account].length - 1);i > finalDepth;i--) {
+        for(uint256 i = stakesByAccount[account].length - 1;i > finalDepth;i--) {
             thisStake = stakesByAccount[account][i];
             if (thisStake.principal > 0) {
-                votingPower = votingPower + (_votingWeight(thisStake.start, thisStake.end, getCurrentDay()) 
+                votingPower += (_votingWeight(thisStake.start, thisStake.end, getCurrentDay()) 
                     * _fullInterest(thisStake.start - thisStake.end,  stakesByEndDay[thisStake.end][thisStake.index].interestRate, thisStake.principal));
             }
         }
