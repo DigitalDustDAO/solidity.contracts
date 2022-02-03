@@ -3,6 +3,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "./IDigitalDustDAO.sol";
 import "./ISocialToken.sol";
 import "./ISocialTokenNFT.sol";
 
@@ -18,6 +19,7 @@ interface ISocialTokenManager is IERC165 {
         Manager
     }
 
+    function getDaoContract() external view returns(IDigitalDustDAO);
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
 

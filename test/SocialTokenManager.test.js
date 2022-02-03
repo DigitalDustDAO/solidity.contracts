@@ -2,14 +2,14 @@ const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
 const DigitalDustDAO = artifacts.require('DigitalDustDAO');
 const SocialTokenManager = artifacts.require('SocialTokenManager');
+const ISocialTokenManager = artifacts.require('ISocialTokenManager');
 
 contract('SocialTokenManager', (accounts) => {
     const zeroAddress = '0x0000000000000000000000000000000000000000';
     const tokenAddress = '0x0000000000000000000000000000000000000123';
     const nftAddress = '0x0000000000000000000000000000000000000321';
-    const daoId = 101;
-    let daoAddress, STM;
-    const interfaceHash = '0x89dc2bfa'
+    const daoProjectId = 1000;
+    let DAO, STM;
     const [creator, userA, userB, ...others] = accounts;
     const RIGHTS = {
         none: 0,
@@ -20,28 +20,15 @@ contract('SocialTokenManager', (accounts) => {
     };
 
     before(async () => {
-        // initialize the DAO
-        const DAO = await DigitalDustDAO.new({ from: creator });
-        daoAddress = DAO.address;
-        await DAO.startProject(1, 1000, "0x0000", { from: creator });
-
-        // initial the STM
-        STM = await SocialTokenManager.new(DAO.address, daoId, { from: creator });
-    });
-
-    describe('constructor', () => {
-        it('Should set dao to input address', async () => {
-            expect(await STM.dao.call()).to.equal(daoAddress);
-        });
-
-        it('Should set token address to zero address', async () => {
-            expect(await STM.token.call()).to.equal(zeroAddress);
-        });
+        DAO = await DigitalDustDAO.deployed();
+        STM = await SocialTokenManager.deployed();
     });
 
     describe('supportsInterface', () => {
-        it('Should approve ISocialTokenManager', async () => {
-            const response = await STM.supportsInterface(interfaceHash);
+        it.skip('Should approve ISocialTokenManager', async () => {
+            // TODO: learn how to build ISocialTokenManager interface outside of solidity
+            const iSocialTokenInterfaceId = await STM.getInterfaceId();
+            const response = await STM.supportsInterface(iSocialTokenInterfaceId);
             expect(response).to.equal(true);
         });
 
@@ -51,57 +38,61 @@ contract('SocialTokenManager', (accounts) => {
         });
     });
 
-    describe('setTokenManager', () => {
-        it('Uses onlyOwner', async () => {
+    contract('initialize', () => {
+        it('Should reject an unexpected token interface', async () => {
+            const daoAddress = DAO.address;
+            // await STM.initialize(daoAddress, daoAddress, { from: creator });
             await expectRevert(
-                STM.setTokenManager(nftAddress, { from: userA }),
-                'Not enough rights to update'
+                STM.initialize(daoAddress, daoAddress, { from: creator }),
+                'Invalid interface'
             );
         });
 
-        it('Uses hasToken', async () => {
-            await expectRevert(
-                STM.setTokenManager(nftAddress, { from: creator }),
-                'Must set token first'
-            );
+        it.skip('Should accept a token that supports ISocialToken', async () => {
+            // TODO: initialize SocialToken address (LTST)
+            // TODO: initialize SocialTokenNFT address (LTST_NFT)
         });
-
-        // TODO: validate setTokenManager called token.setManager (via event?)
     });
 
-    describe('setNFT', () => {
-        it('Uses onlyOwner', async () => {
-            await expectRevert(
-                STM.setNFT(nftAddress, { from: userA }),
-                'Not enough rights to update'
-            );
+    describe('authorize', () => {
+        describe.skip('(source, target, level)', () => {
+            let authorize, sensitivity;
+            before(() => {
+                authorize = STM?.methods['authorize(address,uint8)'];
+            });
         });
 
-        it('Uses hasToken', async () => {
-            await expectRevert(
-                STM.setNFT(nftAddress, { from: creator }),
-                'Must set token first'
-            );
-        });
+        describe('(source, level)', () => {
+            let authorize, sensitivity;
+            before(() => {
+                authorize = STM?.methods['authorize(address,uint8)'];
+                sensitivity = ISocialTokenManager.Sensitivity;
+            });
 
-        // TODO: validate setNFT called token.setNFT (via event?)
+            it('Should authorize creator w/ Elder', async () => {
+                await authorize(creator, sensitivity.Elder, { from: creator });
+            });
+
+            it('Should reject creator w/ invalid level', async () => {
+                await expectRevert(
+                    authorize(creator, 12345, { from: creator }),
+                    'value out-of-bounds'
+                );
+            });
+    
+            it('Should reject userA w/ Basic', async () => {
+                await expectRevert(
+                    authorize(userA, sensitivity.Basic, { from: userA }),
+                    'Not authorized'
+                );
+            });
+        });
     });
 
-    describe('setToken', () => {
-        it('Applies onlyOwner', async () => {
-            await expectRevert(
-                STM.setToken(tokenAddress, { from: userA }),
-                'Not enough rights to update'
-            );
-        });
+    describe('deprecateSelf', () => {});
 
-        it('Defaults to a zero address', async () => {
-            expect(await STM.token.call()).to.equal(zeroAddress);
-        });
-
-        it('setToken updates the token address', async () => {
-            await STM.setToken(tokenAddress, { from: creator });
-            expect(await STM.token.call()).to.equal(tokenAddress);
-        });
-    });
+    describe('getDaoContract', () => {});
+    describe('getTokenContract', () => {});
+    describe('getNftContract', () => {});
+    describe('adjustInterest', () => {});
 });
