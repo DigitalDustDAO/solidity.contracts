@@ -27,7 +27,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private constant MININUM_STAKE_DAYS = 30;
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
 
-    mapping(uint64 => StakeDataPointer[]) private stakesByEndDay;
+    mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
     uint256 private START_TIME;
@@ -89,11 +89,11 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     //         || super.supportsInterface(interfaceId);
     // }
 
-    function stake(uint256 amount, uint16 numberOfDays) public returns(uint64) {
+    function stake(uint256 amount, uint16 numberOfDays) public returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
-        uint64 today = getCurrentDay();
-        uint64 endDay = today + numberOfDays;
+        uint256 today = getCurrentDay();
+        uint256 endDay = today + numberOfDays;
         uint256 accountIndex = stakesByAccount[stakeAccount].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
@@ -113,8 +113,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         ));
 
         stakesByAccount[stakeAccount].push(StakeData(
-            today, 
-            endDay,
+            uint64(today), 
+            uint64(endDay),
             uint128(endDayIndex),
             amount
         ));
@@ -122,7 +122,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // send 
         _send(stakeAccount, address(this), amount, "", "", false);
 
-        emit Staked(stakeAccount, numberOfDays, endDay, amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint32(accountIndex));
+        emit Staked(stakeAccount, numberOfDays, uint64(endDay), amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint32(accountIndex));
 
         return uint32(accountIndex);
     }
@@ -165,7 +165,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     function mine() public {
         require(balanceOf(_msgSender()) > 0);
 
-        uint64 tasksCompleted = 0;
+        uint256 tasksCompleted = 0;
         uint256 interest;
         StakeDataPointer memory currentStake;
         StakeData memory accountStake;
@@ -177,7 +177,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
 
         // reward ended stakes to people
-        for (uint64 i = lastCompletedDistribution;i <= getCurrentDay();i++) {
+        for (uint256 i = lastCompletedDistribution;i <= getCurrentDay();i++) {
             while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
                 currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
                 stakesByEndDay[i].pop();
@@ -198,7 +198,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         if (tasksCompleted > 0) {
             // TODO: send pool tokens if available
             _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
-            emit MiningReward(_msgSender(), tasksCompleted, rewardPerMiningTask * tasksCompleted);
+            emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
     }
 
@@ -214,9 +214,9 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function getNumMiningTasks() public view returns(uint256) {
-        uint64 today = getCurrentDay();
+        uint256 today = getCurrentDay();
         uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
-        for (uint64 i = lastCompletedDistribution;i <= today;i++) {
+        for (uint256 i = lastCompletedDistribution;i <= today;i++) {
             numTasks = numTasks + stakesByEndDay[i].length;
         }
         return numTasks;
@@ -242,8 +242,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return stakesByAccount[account][id].principal;
     }
 
-    function getCurrentDay() public view returns(uint64) {
-        return uint64((block.timestamp - START_TIME) / 1 days);
+    function getCurrentDay() public view returns(uint256) {
+        return (block.timestamp - START_TIME) / 1 days;
     }
 
     // Need to test how much gas this function uses.
@@ -264,8 +264,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function calculateInterest(uint64 start, uint64 end, uint64 interestRate, uint256 principal) public view returns(bool, uint256) {
-        uint64 halfStakeLength = (end - start) / 2;
-        uint64 timeStaked = getCurrentDay() - start;
+        uint256 halfStakeLength = (end - start) / 2;
+        uint256 timeStaked = getCurrentDay() - start;
         uint256 payoff = _fullInterest(end - start, interestRate, principal);
         if (timeStaked < halfStakeLength) {
             return (false, (payoff * timeStaked) / halfStakeLength);
@@ -275,7 +275,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _votingWeight(uint64 start, uint64 end, uint64 currentDay) private pure returns(uint64){
+    function _votingWeight(uint64 start, uint64 end, uint256 currentDay) private pure returns(uint256){
         if (currentDay - start <= (end - start) / 2) {
             return (currentDay - start) * 2;
         }
@@ -294,13 +294,13 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
-        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-        return super.transfer(recipient, amount);
-    }
+    // function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
+    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+    //     return super.transfer(recipient, amount);
+    // }
 
-    function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
-        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-        super.send(recipient, amount, data);
-    }
+    // function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
+    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+    //     super.send(recipient, amount, data);
+    // }
 }
