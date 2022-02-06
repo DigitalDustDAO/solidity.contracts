@@ -76,28 +76,28 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address source, address target, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
-            require(daoContract.rightsOf(daoId, source) >= 100 && daoContract.rightsOf(daoId, target) >= 100 && daoContract.penaltyOf(daoId, source) == 0 && daoContract.penaltyOf(daoId, target) == 0, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 100 && daoContract.accessOf(daoId, target) >= 100, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Council) {
-            require(daoContract.rightsOf(daoId, source) >= 400 && daoContract.rightsOf(daoId, target) >= 400 && daoContract.penaltyOf(daoId, source) < 400 && daoContract.penaltyOf(daoId, target) < 400, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 400 && daoContract.accessOf(daoId, target) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.rightsOf(daoId, source) >= 500 && daoContract.rightsOf(daoId, target) >= 500 && daoContract.penaltyOf(daoId, source) < 500 && daoContract.penaltyOf(daoId, target) < 500, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 500 && daoContract.accessOf(daoId, target) >= 500, UNAUTHORIZED);
         }
         else { // invalid input, deny
-            require(false, UNAUTHORIZED);
+            revert(UNAUTHORIZED);
         }
     }
 
     function authorize(address source, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
-            require(daoContract.rightsOf(daoId, source) >= 100 && daoContract.penaltyOf(daoId, source) == 0, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 100, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Council) {
-            require(daoContract.rightsOf(daoId, source) >= 400 && daoContract.penaltyOf(daoId, source) < 400, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.rightsOf(daoId, source) >= 500 && daoContract.penaltyOf(daoId, source) < 500, UNAUTHORIZED);
+            require(daoContract.accessOf(daoId, source) >= 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Maintainance) {
             require(daoContract.rightsOf(daoId, source) >= 400, UNAUTHORIZED);
@@ -109,7 +109,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
             require(source == address(tokenContract), UNAUTHORIZED);
         }
         else { // invalid input, deny
-            require(false, UNAUTHORIZED);
+            revert(UNAUTHORIZED);
         }
     }
 

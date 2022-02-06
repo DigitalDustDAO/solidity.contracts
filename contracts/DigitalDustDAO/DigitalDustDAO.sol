@@ -33,6 +33,12 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
             : _balances[id][account].penalty;
     }
 
+    function accessOf(uint256 id, address account) external view returns (uint64 access) {
+        return _balances[0][account].rights - _balances[0][account].penalty > _balances[id][account].rights - _balances[id][account].penalty
+            ? _balances[0][account].rights - _balances[0][account].penalty
+            : _balances[id][account].rights - _balances[id][account].penalty;
+    }
+
     function setPenalty(uint256 id, address account, uint32 penalty) external {
         require(this.rightsOf(id, _msgSender()) >= APPLY_PENALTY, "Not enough rights to set penalty");
         _balances[id][account].penalty = penalty;

@@ -26,6 +26,7 @@ interface IDigitalDustDAO {
     function rightsOf(uint256 id, address account) external view returns (uint64 rights);
 
     function penaltyOf(uint256 id, address account) external view returns (uint64 penalty);
+    function accessOf(uint256 id, address account) external view returns (uint64 access);
 
     function setPenalty(uint256 id, address account, uint32 penalty) external;
 

@@ -80,15 +80,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         miningGasReserve = miningReserve;
     }
 
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    // function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-    //     return 
-    //         interfaceId == type(ISocialToken).interfaceId
-    //         || super.supportsInterface(interfaceId);
-    // }
-
     function stake(uint256 amount, uint16 numberOfDays) public returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
@@ -222,24 +213,15 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return numTasks;
     }
 
-    function getInterestRates() public view returns(uint64, uint64, uint64, uint64, uint64) {
+    function getContractInterestRates() public view returns(uint64, uint64, uint64, uint64, uint64) {
         return (baseInterestRate, linearInterestBonus, quadraticInterestBonus, rewardPerMiningTask, miningGasReserve);
     }
 
-    function getStakeStart (address account, uint64 id) public view returns(uint64) {
-        return stakesByAccount[account][id].start;
-    }
 
-    function getStakeEnd (address account, uint64 id) public view returns(uint64) {
-        return stakesByAccount[account][id].end;
-    }
-
-    function getStakeInterestRate (address account, uint64 id) public view returns(uint64) {
-        return stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate;
-    }
-
-    function getStakePrincipal (address account, uint64 id) public view returns(uint256) {
-        return stakesByAccount[account][id].principal;
+    function getStakeValues (address account, uint64 id) public view returns(uint64, uint64, uint64, uint256) {
+        return (stakesByAccount[account][id].start, stakesByAccount[account][id].end, 
+            stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate, 
+            stakesByAccount[account][id].principal);
     }
 
     function getCurrentDay() public view returns(uint256) {
@@ -294,13 +276,13 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }
 
-    // function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
-    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-    //     return super.transfer(recipient, amount);
-    // }
+    function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
+        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+        return super.transfer(recipient, amount);
+    }
 
-    // function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
-    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-    //     super.send(recipient, amount, data);
-    // }
+    function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
+        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+        super.send(recipient, amount, data);
+    }
 }
