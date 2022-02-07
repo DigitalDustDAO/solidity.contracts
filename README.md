@@ -1,6 +1,6 @@
-#Some useful commands:
+# Some useful commands:
 
-##Compiling
+## Compiling
 Compile all contracts
 `npx truffle compile`
 
@@ -13,7 +13,7 @@ Ignore the mock contracts
 Display the size of specific contracts
 `npx truffle run contract-size --contracts LongTailSocialToken`
 
-##Testing
+## Testing
 Compile, then run all test suites
 `npx truffle test`
 
