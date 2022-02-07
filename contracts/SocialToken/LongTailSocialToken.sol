@@ -153,7 +153,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         } 
     }
 
-    function mine() public {
+    function mine() public virtual {
         require(balanceOf(_msgSender()) > 0);
 
         uint256 tasksCompleted = 0;
