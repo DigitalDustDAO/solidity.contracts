@@ -5,7 +5,7 @@ const SocialTokenManager = artifacts.require('SocialTokenManager');
 const ISocialTokenManager = artifacts.require('ISocialTokenManager');
 const LongTailSocialToken = artifacts.require('LongTailSocialToken');
 
-contract('SocialTokenManager', (accounts) => {
+contract.skip('LongTailSocialToken', (accounts) => {
     const zeroAddress = '0x0000000000000000000000000000000000000000';
     const tokenAddress = '0x0000000000000000000000000000000000000123';
     const nftAddress = '0x0000000000000000000000000000000000000321';
@@ -23,5 +23,10 @@ contract('SocialTokenManager', (accounts) => {
     before(async () => {
         DAO = await DigitalDustDAO.deployed();
         STM = await SocialTokenManager.deployed();
+        LTST = await LongTailSocialToken.deployed();
+    });
+
+    it('initializes LTST', async () => {
+        expectEvent(LTST).to.be.defined;
     });
 });

@@ -13,10 +13,11 @@ const LongTailSocialToken = artifacts.require("LongTailSocialToken");
 module.exports = async function (deployer, network, accounts) {
     const [creator, userA, userB, ...others] = accounts;
 
-    if (network === 'test' || network === 'development')  {
-        // In a test environment an ERC777 token requires deploying an ERC1820 registry
-        await singletons.ERC1820Registry(creator);
-    }
+    // if (network === 'test' || network === 'development')  {
+    //     // In a test environment an ERC777 token requires deploying an ERC1820 registry
+    //     console.log('deploying ERC1820Registry...')
+    //     await singletons.ERC1820Registry(creator);
+    // }
 
     // Initialize the DAO contract
     await deployer.deploy(DigitalDustDAO);
@@ -37,7 +38,9 @@ module.exports = async function (deployer, network, accounts) {
     const stmAddress = stmInstance.address;
 
     // Initialize LTST
+    // console.log('stmAddress:', stmAddress)
     // await deployer.deploy(LongTailSocialToken, stmAddress, []);
     // const ltstInstance = await LongTailSocialToken.deployed();
+    // console.log('ltstInstance:', ltstInstance)
     // const ltstAddress = ltstInstance.address;
 };
