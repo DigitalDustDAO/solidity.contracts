@@ -140,7 +140,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // distribute the funds
         if (positive) {
             _send(address(this), stakeAccount, principal, "", "", false);
-            _mint(stakeAccount, interest, "", "", false);
+            _mint(stakeAccount, interest, "", "", 0);
         }
         else {
             _send(address(this), stakeAccount, principal - interest, "", "", false);
@@ -178,8 +178,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
                     // done this way to prevent the possibility of rollbacks.
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
-                    _mint(address(this), interest, "", "");
-                    _move(address(this), address(this), currentStake.owner, accountStake.principal + interest, "", "");
+                    _move(address(this), address(this), currentStake.owner, accountStake.principal, "", "");
+                    _mint(currentStake.owner, interest, "", "", -1);
 
                     tasksCompleted++;
                 }
@@ -188,8 +188,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         if (tasksCompleted > 0) {
             // TODO: send pool tokens if available
-            // TODO: This mint should not be able to revert
-            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
+            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "", -1);
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
     }
@@ -201,7 +200,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             _burn(account, uint256(amount), "", "");
         }
         else if (amount < 0) {
-            _mint(account, uint256(-amount), "", "");
+            _mint(account, uint256(-amount), "", "", 0);
         }
     }
 
