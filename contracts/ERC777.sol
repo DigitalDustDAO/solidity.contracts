@@ -353,7 +353,7 @@ contract ERC777 is Context, IERC777, IERC20 {
 
         address operator = _msgSender();
 
-        // _beforeTokenTransfer(operator, address(0), account, amount);
+        _beforeTokenTransfer(operator, address(0), account, amount);
 
         // Update state variables
         _totalSupply += amount;
@@ -416,7 +416,7 @@ contract ERC777 is Context, IERC777, IERC20 {
 
         _callTokensToSend(operator, from, address(0), amount, data, operatorData);
 
-        // _beforeTokenTransfer(operator, from, address(0), amount);
+        _beforeTokenTransfer(operator, from, address(0), amount);
 
         // Update state variables
         uint256 fromBalance = _balances[from];
@@ -438,7 +438,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         bytes memory userData,
         bytes memory operatorData
     ) internal {
-        // _beforeTokenTransfer(operator, from, to, amount);
+        _beforeTokenTransfer(operator, from, to, amount);
 
         uint256 fromBalance = _balances[from];
         require(fromBalance >= amount, "ERC777: transfer amount exceeds balance");
@@ -533,10 +533,10 @@ contract ERC777 is Context, IERC777, IERC20 {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    // function _beforeTokenTransfer(
-    //     address operator,
-    //     address from,
-    //     address to,
-    //     uint256 amount
-    // ) internal virtual {}
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
 }

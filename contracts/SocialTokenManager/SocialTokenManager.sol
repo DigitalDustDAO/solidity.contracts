@@ -74,20 +74,20 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         return nftContract;
     }
 
-    function authorize(address source, address target, Sensitivity level) external view {
-        if (level == Sensitivity.Basic) {
-            require(daoContract.accessOf(daoId, source) >= 100 && daoContract.accessOf(daoId, target) >= 100, UNAUTHORIZED);
-        }
-        else if (level == Sensitivity.Council) {
-            require(daoContract.accessOf(daoId, source) >= 400 && daoContract.accessOf(daoId, target) >= 400, UNAUTHORIZED);
-        }
-        else if (level == Sensitivity.Elder) {
-            require(daoContract.accessOf(daoId, source) >= 500 && daoContract.accessOf(daoId, target) >= 500, UNAUTHORIZED);
-        }
-        else { // invalid input, deny
-            revert(UNAUTHORIZED);
-        }
-    }
+    // function authorize(address source, address target, Sensitivity level) external view {
+    //     if (level == Sensitivity.Basic) {
+    //         require(daoContract.accessOf(daoId, source) >= 100 && daoContract.accessOf(daoId, target) >= 100, UNAUTHORIZED);
+    //     }
+    //     else if (level == Sensitivity.Council) {
+    //         require(daoContract.accessOf(daoId, source) >= 400 && daoContract.accessOf(daoId, target) >= 400, UNAUTHORIZED);
+    //     }
+    //     else if (level == Sensitivity.Elder) {
+    //         require(daoContract.accessOf(daoId, source) >= 500 && daoContract.accessOf(daoId, target) >= 500, UNAUTHORIZED);
+    //     }
+    //     else { // invalid input, deny
+    //         revert(UNAUTHORIZED);
+    //     }
+    // }
 
     function authorize(address source, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
