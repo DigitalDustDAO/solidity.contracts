@@ -43,9 +43,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint internal linearInterestBonus;
     uint internal quadraticInterestBonus;
 
-    // uint64 private nothing;
-    // uint64 private alsonothing;
-
     // TODO: mint tokens
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
@@ -143,7 +140,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // distribute the funds
         if (positive) {
             _send(address(this), stakeAccount, principal, "", "", false);
-            _mint(stakeAccount, interest, "", "", false);
+            _mint(stakeAccount, interest, "", "", 0);
         }
         else {
             _send(address(this), stakeAccount, principal - interest, "", "", false);
@@ -179,10 +176,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
                     accountStake = stakesByAccount[currentStake.owner][currentStake.index];
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
 
-                    // seems impossible to prevent rollbacks.
+                    // done this way to prevent the possibility of rollbacks.
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
-                    _mint(address(this), interest, "", "");
-                    _move(address(this), address(this), currentStake.owner, accountStake.principal + interest, "", "");
+                    _move(address(this), address(this), currentStake.owner, accountStake.principal, "", "");
+                    _mint(currentStake.owner, interest, "", "", -1);
 
                     tasksCompleted++;
                 }
@@ -191,7 +188,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         if (tasksCompleted > 0) {
             // TODO: send pool tokens if available
-            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
+            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "", -1);
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
     }
@@ -203,7 +200,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             _burn(account, uint256(amount), "", "");
         }
         else if (amount < 0) {
-            _mint(account, uint256(-amount), "", "");
+            _mint(account, uint256(-amount), "", "", 0);
         }
     }
 
@@ -248,7 +245,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return votingPower;
     }
 
-    function calculateInterest(uint64 start, uint64 end, uint64 interestRate, uint256 principal) public view returns(bool, uint256) {
+    function calculateInterest(uint256 start, uint256 end, uint256 interestRate, uint256 principal) public view returns(bool, uint256) {
         uint256 halfStakeLength = (end - start) / 2;
         uint256 timeStaked = getCurrentDay() - start;
         uint256 payoff = _fullInterest(end - start, interestRate, principal);
@@ -260,7 +257,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _votingWeight(uint64 start, uint64 end, uint256 currentDay) private pure returns(uint256){
+    function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){
         if (currentDay - start <= (end - start) / 2) {
             return (currentDay - start) * 2;
         }
@@ -269,23 +266,29 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _fullInterest(uint64 duration, uint64 interestRate, uint256 principal) private pure returns(uint256) {
+    function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {
         return (interestRate * duration * principal) / type(uint64).max;
     }
 
-    function calculateInterestRate(address account, uint64 numberOfDays) public view returns(uint64) {
-        uint256 interest = baseInterestRate + uint256(linearInterestBonus * numberOfDays) + uint256(quadraticInterestBonus * numberOfDays * numberOfDays) + uint256(manager.getNftContract().interestBonus(account));
+    function calculateInterestRate(address account, uint256 numberOfDays) public view returns(uint64) {
+        uint256 interest = baseInterestRate + linearInterestBonus * numberOfDays + quadraticInterestBonus * numberOfDays * numberOfDays + manager.getNftContract().interestBonus(account);
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
-        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-        return super.transfer(recipient, amount);
-    }
+    // function transfer(address recipient, uint256 amount) public virtual override(ERC777) returns (bool) {
+    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+    //     return super.transfer(recipient, amount);
+    // }
 
-    function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
-        manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
-        super.send(recipient, amount, data);
+    // function send(address recipient, uint256 amount, bytes memory data) public virtual override(ERC777) {
+    //     manager.authorize(_msgSender(), recipient, ISocialTokenManager.Sensitivity.Basic);
+    //     super.send(recipient, amount, data);
+    // }
+
+    function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal view override {
+        if (to != address(0) && to != address(this)) {
+            manager.authorize(to, ISocialTokenManager.Sensitivity.Basic);
+        }
     }
 }

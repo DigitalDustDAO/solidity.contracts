@@ -321,7 +321,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         bytes memory userData,
         bytes memory operatorData
     ) internal virtual {
-        _mint(account, amount, userData, operatorData, true);
+        _mint(account, amount, userData, operatorData, 0);
     }
 
     /**
@@ -347,7 +347,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         uint256 amount,
         bytes memory userData,
         bytes memory operatorData,
-        bool requireReceptionAck
+        int256 requireReceptionAck
     ) internal virtual {
         require(account != address(0), "ERC777: mint to the zero address");
 
@@ -359,7 +359,10 @@ contract ERC777 is Context, IERC777, IERC20 {
         _totalSupply += amount;
         _balances[account] += amount;
 
-        _callTokensReceived(operator, address(0), account, amount, userData, operatorData, requireReceptionAck);
+        if (requireReceptionAck == 0)
+            _callTokensReceived(operator, address(0), account, amount, userData, operatorData, false);
+        if (requireReceptionAck > 0)
+            _callTokensReceived(operator, address(0), account, amount, userData, operatorData, true);
 
         emit Minted(operator, account, amount, userData, operatorData);
         emit Transfer(address(0), account, amount);
