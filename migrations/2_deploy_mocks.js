@@ -14,7 +14,7 @@ module.exports = async function (deployer, network, accounts) {
     const [creator, userA, userB, ...others] = accounts;
 
     if (network === "test" || network === "development")  {
-        console.log("deploying mock contracts...")
+        console.log("deploying mock contracts...");
 
         // In a test environment an ERC777 token requires deploying an ERC1820 registry
         await singletons.ERC1820Registry(creator);
@@ -34,19 +34,19 @@ module.exports = async function (deployer, network, accounts) {
         // Initialize the STM using LTST project id
         await deployer.deploy(SocialTokenManagerMock, daoInstance.address, daoProjectId);
         const stmInstance = await SocialTokenManagerMock.deployed();
-        console.log("stmInstance.address:", stmInstance.address)
+        console.log("stmInstance.address:", stmInstance.address);
 
         // Initialize LTST using STM
         await deployer.deploy(LongTailSocialTokenMock, stmInstance.address, []);
         const ltstInstance = await LongTailSocialTokenMock.deployed();
-        console.log("ltstInstance.address:", ltstInstance.address)
+        console.log("ltstInstance.address:", ltstInstance.address);
 
         // Initialize NFT
         await deployer.deploy(SocialTokenNFTMock, stmInstance.address, "", "");
         const nftInstance = await SocialTokenNFTMock.deployed();
-        console.log("nftInstance.address:", nftInstance.address)
+        console.log("nftInstance.address:", nftInstance.address);
 
-        // // Re-initialize STM using NFT+LTST
-        // stmInstance.initialize(ltstInstance.address, nftInstance.address)
+        // Re-initialize STM using NFT+LTST
+        stmInstance.initialize(ltstInstance.address, nftInstance.address)
     }
 };

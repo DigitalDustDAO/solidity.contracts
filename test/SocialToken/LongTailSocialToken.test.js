@@ -11,7 +11,7 @@ contract('LongTailSocialToken', (accounts) => {
     const nftAddress = '0x0000000000000000000000000000000000000321';
     const daoProjectId = 1000;
     let DAO, STM;
-    const [creator, userA, userB, ...others] = accounts;
+    const [creator, userA, userB, userC, ...others] = accounts;
     const RIGHTS = {
         none: 0,
         grant: 100,
@@ -79,7 +79,7 @@ contract('LongTailSocialToken', (accounts) => {
         });
     });
 
-    describe.only('setManager', () => {
+    contract('setManager', () => {
         it('Should deny access from userA', async () => {
             await expectRevert.unspecified(
                 LTST.setManager(zeroAddress, true, { from: userA })
@@ -94,14 +94,70 @@ contract('LongTailSocialToken', (accounts) => {
 
         it('Should allow access from manager contract', async () => {
             const newManager = await SocialTokenManagerMock.new(DAO.address, 9999, { from: creator });
-            await LTST.setMsgSender(STM.address)
+            await LTST.setMsgSender(STM.address);
             await LTST.setManager(newManager.address, true);
             expect(await LTST.getManager()).to.equal(newManager.address);
         });
     });
 
-    describe('setInterestRates', () => {});
-    describe('stake', () => {});
+    contract('setInterestRates', () => {
+        it('Should reject updates from userC', async () => {
+            const newRates = [5, 10, 15, 20, 25];
+            await expectRevert.unspecified(
+                LTST.setInterestRates(...newRates, { from: userC })
+            );
+        });
+
+        it('Should update values from creator', async () => {
+            const newRates = [10, 20, 30, 40, 50];
+            await LTST.setInterestRates(...newRates, { from: creator });
+
+            const updatedRates = await LTST.getContractInterestRates()
+                .then(ratesObj => Object.values(ratesObj).map(n => n.toNumber()));
+            
+            for(let i = 0; i < newRates.length; i++) {
+                expect(updatedRates[i]).to.equal(newRates[i]);
+            };
+        });
+    });
+
+    contract.only('stake', () => {
+        const [minAmount, minDays, maxDays] = [10**11, 30, 5844];
+
+        before(async () => {
+            await LTST.setBalance(creator, 5 * minAmount);
+            await LTST.setBalance(userB, minAmount);
+
+            const balanceOfCreator = await LTST.balanceOf(creator, { from: creator })
+                .then(n => n.toNumber());
+            expect(balanceOfCreator).to.equal(5 * minAmount);
+
+            const balanceOfUserB = await LTST.balanceOf(userB, { from: userB })
+                .then(n => n.toNumber());
+            expect(balanceOfUserB).to.equal(minAmount);
+
+            const balanceOfUserC = await LTST.balanceOf(userC, { from: userC })
+                .then(n => n.toNumber());
+            expect(balanceOfUserC).to.equal(0);
+        });
+
+        it('Should stake the minimum amount and duration for creator', async () => {
+            await LTST.stake(minAmount + 1, minDays + 1, { from: creator });
+        });
+
+        it('Should reject insufficient stake amount', async () => {
+            await expectRevert.unspecified(
+                LTST.stake(minAmount - 1, minDays, { from: creator })
+            );
+        });
+
+        it('Should reject insufficient duration', async () => {
+            await expectRevert.unspecified(
+                LTST.stake(minAmount, minDays - 1, { from: creator })
+            );
+        });
+    });
+
     describe('unstake', () => {});
     describe.skip('mine', () => {});
     describe('forge', () => {});
@@ -113,7 +169,27 @@ contract('LongTailSocialToken', (accounts) => {
     describe('calculateInterest', () => {});
     describe('_votingWeight', () => {});
     describe('_fullInterest', () => {});
-    describe('calculateInterestRate', () => {});
+
+    contract.only('calculateInterestRate', () => {
+        const expectedRates = {
+            30: 9800,
+            45: 21425,
+            60: 37550,
+            75: 58175,
+            90: 83300,
+        };
+
+        Object.entries(expectedRates).map(([days, expectedRate]) => {
+            it(`Should return rate for ${days} days`, () => {
+                return LTST.calculateInterestRate(creator, days)
+                    .then(response => {
+                        const actualRate = response.toNumber();
+                        expect(actualRate).to.equal(expectedRate);
+                    });
+            });
+        });
+    });
+
     describe('transfer', () => {});
     describe('send', () => {});
 });

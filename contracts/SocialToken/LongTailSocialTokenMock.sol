@@ -18,11 +18,7 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
     }
 
     function _msgSender() internal view override returns (address) {
-        if (_sender != address(0)) {
-            return _sender;
-        } else {
-            return msg.sender;
-        }
+        return _sender != address(0) ? _sender : msg.sender;
     }
 
     function getCurrentDay() public override virtual view returns (uint256) {
@@ -45,5 +41,9 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
 
     function getLastInterestAdjustment() external view returns (uint) {
         return lastInterestAdjustment;
+    }
+
+    function setBalance(address account, uint256 amount) public {
+        _balances[account] = amount;
     }
 }
