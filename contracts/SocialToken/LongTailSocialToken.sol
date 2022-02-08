@@ -26,22 +26,25 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 30;
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
+    uint private START_TIME;
+
 
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
-    uint256 private START_TIME;
-
-    uint64 private lastInterestAdjustment;
-    uint64 private lastCompletedDistribution;
-    uint64 private rewardPerMiningTask;
-    uint64 private miningGasReserve;
-
-    uint64 private baseInterestRate;
-    uint64 private linearInterestBonus;
-    uint64 private quadraticInterestBonus;
-
     ISocialTokenManager private manager;
+
+    uint private lastInterestAdjustment;
+    uint private lastCompletedDistribution;
+    uint private rewardPerMiningTask;
+    uint private miningGasReserve;
+
+    uint private baseInterestRate;
+    uint private linearInterestBonus;
+    uint private quadraticInterestBonus;
+
+    // uint64 private nothing;
+    // uint64 private alsonothing;
 
     // TODO: mint tokens
     constructor(address manager_, address[] memory defaultOperators_) 
@@ -214,7 +217,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function getContractInterestRates() public view returns(uint64, uint64, uint64, uint64, uint64) {
-        return (baseInterestRate, linearInterestBonus, quadraticInterestBonus, rewardPerMiningTask, miningGasReserve);
+        return (uint64(baseInterestRate), uint64(linearInterestBonus), uint64(quadraticInterestBonus), uint64(rewardPerMiningTask), uint64(miningGasReserve));
     }
 
 
