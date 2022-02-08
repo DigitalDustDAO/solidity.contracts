@@ -176,7 +176,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
                     accountStake = stakesByAccount[currentStake.owner][currentStake.index];
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
 
-                    // seems impossible to prevent rollbacks.
+                    // done this way to prevent the possibility of rollbacks.
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
                     _mint(address(this), interest, "", "");
                     _move(address(this), address(this), currentStake.owner, accountStake.principal + interest, "", "");
@@ -188,6 +188,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         if (tasksCompleted > 0) {
             // TODO: send pool tokens if available
+            // TODO: This mint should not be able to revert
             _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "");
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
