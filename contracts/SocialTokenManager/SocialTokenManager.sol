@@ -116,5 +116,4 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     function adjustInterest() external view {
         // not implemented in this version
     }
-
 }

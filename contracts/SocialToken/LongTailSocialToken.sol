@@ -91,7 +91,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // ensure inputs are not out of range 
         require(amount >= MININUM_STAKE_AMOUNT);
         require(balanceOf(stakeAccount) >= amount);
-        require(numberOfDays <= MAXIMUM_STAKE_DAYS); 
+        require(numberOfDays <= MAXIMUM_STAKE_DAYS);
         require(numberOfDays >= MININUM_STAKE_DAYS);
         require(accountIndex <= type(uint32).max);
         require(endDayIndex <= type(uint128).max);
@@ -104,7 +104,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         ));
 
         stakesByAccount[stakeAccount].push(StakeData(
-            uint64(today), 
+            uint64(today),
             uint64(endDay),
             uint128(endDayIndex),
             amount
@@ -131,7 +131,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             stakesByAccount[stakeAccount][stakeNumber].start,
             stakesByAccount[stakeAccount][stakeNumber].end,
             stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index].interestRate,
-            stakesByAccount[stakeAccount][stakeNumber].principal);
+            stakesByAccount[stakeAccount][stakeNumber].principal
+        );
 
         // delete the stake data
         delete(stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index]);
@@ -214,14 +215,23 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function getContractInterestRates() public virtual view returns(uint64, uint64, uint64, uint64, uint64) {
-        return (uint64(baseInterestRate), uint64(linearInterestBonus), uint64(quadraticInterestBonus), uint64(rewardPerMiningTask), uint64(miningGasReserve));
+        return (
+            uint64(baseInterestRate),
+            uint64(linearInterestBonus),
+            uint64(quadraticInterestBonus),
+            uint64(rewardPerMiningTask),
+            uint64(miningGasReserve)
+        );
     }
 
 
-    function getStakeValues (address account, uint64 id) public virtual view returns(uint64, uint64, uint64, uint256) {
-        return (stakesByAccount[account][id].start, stakesByAccount[account][id].end, 
-            stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate, 
-            stakesByAccount[account][id].principal);
+    function getStakeValues (address account, uint32 id) public virtual view returns(uint64, uint64, uint64, uint256) {
+        return (
+            stakesByAccount[account][id].start,
+            stakesByAccount[account][id].end,
+            stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate,
+            stakesByAccount[account][id].principal
+        );
     }
 
     function getCurrentDay() public virtual view returns(uint256) {
@@ -234,7 +244,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         StakeData memory thisStake;
         uint256 finalDepth = stakesByAccount[account].length <= 256 ? 0 : stakesByAccount[account].length - 256;
 
-        for(uint256 i = stakesByAccount[account].length - 1;i > finalDepth;i--) {
+        for(uint256 i = stakesByAccount[account].length - 1; i > finalDepth; i--) {
             thisStake = stakesByAccount[account][i];
             if (thisStake.principal > 0) {
                 votingPower += (_votingWeight(thisStake.start, thisStake.end, getCurrentDay()) 
