@@ -1,6 +1,6 @@
 const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
-const DigitalDustDAO = artifacts.require("DigitalDustDAO");
+const DigitalDustDAOMock = artifacts.require("DigitalDustDAOMock");
 
 contract('DigitalDustDAO', (accounts) => {
     let contract;
@@ -15,7 +15,7 @@ contract('DigitalDustDAO', (accounts) => {
     };
 
     before(async () => {
-        contract = await DigitalDustDAO.new({ from: creator });
+        contract = await DigitalDustDAOMock.new({ from: creator });
     });
 
     it('Constructor should assign rights to creator', async () => {

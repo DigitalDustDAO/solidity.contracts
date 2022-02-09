@@ -8,9 +8,16 @@ import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
 
-abstract contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
+contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
+    ISocialTokenManager internal manager;
 
-    ISocialTokenManager private manager;
+    constructor(
+        address manager_,
+        string memory name_,
+        string memory symbol_
+    ) ERC721(name_, symbol_) {
+        manager = ISocialTokenManager(manager_);
+    }
 
     constructor(address manager_) ERC721("Long Tail NFT", "LTNFT") {
         manager = ISocialTokenManager(manager_);

@@ -9,12 +9,12 @@ import "./ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC777 {
 
-// framerate, interest, adding and redeeming stakes, mining
+    // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
         address owner;
         uint64 interestRate;
         uint32 index;
-   }
+    }
 
     struct StakeData {
         uint64 start;
@@ -118,7 +118,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return uint32(accountIndex);
     }
 
-    function unstake(uint32 stakeNumber) public {
+    function unstake(uint32 stakeNumber) public virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 principal = stakesByAccount[stakeAccount][stakeNumber].principal;
@@ -193,7 +193,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function forge(address account, int256 amount) external {
+    function forge(address account, int256 amount) virtual external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
 
         if (amount > 0) {
@@ -204,7 +204,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function getNumMiningTasks() public view returns(uint256) {
+    function getNumMiningTasks() public virtual view returns(uint256) {
         uint256 today = getCurrentDay();
         uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
         for (uint256 i = lastCompletedDistribution;i <= today;i++) {
@@ -213,18 +213,18 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return numTasks;
     }
 
-    function getContractInterestRates() public view returns(uint64, uint64, uint64, uint64, uint64) {
+    function getContractInterestRates() public virtual view returns(uint64, uint64, uint64, uint64, uint64) {
         return (uint64(baseInterestRate), uint64(linearInterestBonus), uint64(quadraticInterestBonus), uint64(rewardPerMiningTask), uint64(miningGasReserve));
     }
 
 
-    function getStakeValues (address account, uint32 id) public view returns(uint64, uint64, uint64, uint256) {
+    function getStakeValues (address account, uint32 id) public virtual view returns(uint64, uint64, uint64, uint256) {
         return (stakesByAccount[account][id].start, stakesByAccount[account][id].end, 
             stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate, 
             stakesByAccount[account][id].principal);
     }
 
-    function getCurrentDay() public view returns(uint256) {
+    function getCurrentDay() public virtual view returns(uint256) {
         return (block.timestamp - START_TIME) / 1 days;
     }
 
