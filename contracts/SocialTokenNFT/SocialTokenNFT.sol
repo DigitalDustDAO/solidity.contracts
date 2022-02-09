@@ -8,18 +8,21 @@ import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
 
-contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
+contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
+
     ISocialTokenManager internal manager;
 
-    constructor(
-        address manager_,
-        string memory name_,
-        string memory symbol_
-    ) ERC721(name_, symbol_) {
-        manager = ISocialTokenManager(manager_);
+    string public baseTokenURI;
+
+    struct NFTData {
+        uint16 level,
+        uint32 group,
+        uint128 index
     }
 
-    constructor(address manager_) ERC721("Long Tail NFT", "LTNFT") {
+    
+
+    constructor(address manager_) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);
     }
 
@@ -40,4 +43,15 @@ contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
         require(_msgSender() == address(manager));
         manager = ISocialTokenManager(newManager);
     }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseTokenURI;
+    }
+
+    function setBaseURI(string memory newURI) external {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        baseTokenURI = newURI;
+    }
+
+    function forge(uint256 quantity)
 }

@@ -26,15 +26,16 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 30;
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
-    uint private START_TIME;
+    uint private immutable START_TIME;
 
 
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
-    ISocialTokenManager private manager;
+    //ISocialTokenManager private manager;
+    ISocialTokenManager internal manager; // this cannot remain internal
 
-    uint private lastInterestAdjustment;
+    uint internal lastInterestAdjustment;
     uint private lastCompletedDistribution;
     uint private rewardPerMiningTask;
     uint private miningGasReserve;
