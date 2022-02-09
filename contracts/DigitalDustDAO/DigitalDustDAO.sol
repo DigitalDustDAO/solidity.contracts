@@ -21,19 +21,19 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         emit SetRights(0, address(0), _msgSender(), type(uint32).max);
     }
 
-    function rightsOf(uint256 id, address account) external view returns (uint64 rights) {
+    function rightsOf(uint256 id, address account) external view returns (uint32 rights) {
         return _balances[0][account].rights > _balances[id][account].rights
             ? _balances[0][account].rights
             : _balances[id][account].rights;
     }
 
-    function penaltyOf(uint256 id, address account) external view returns (uint64 penalty) {
+    function penaltyOf(uint256 id, address account) external view returns (uint32 penalty) {
         return _balances[0][account].penalty > _balances[id][account].penalty
             ? _balances[0][account].penalty
             : _balances[id][account].penalty;
     }
 
-    function accessOf(uint256 id, address account) external view returns (uint64 access) {
+    function accessOf(uint256 id, address account) external view returns (uint32 access) {
         return _balances[0][account].rights - _balances[0][account].penalty > _balances[id][account].rights - _balances[id][account].penalty
             ? _balances[0][account].rights - _balances[0][account].penalty
             : _balances[id][account].rights - _balances[id][account].penalty;

@@ -26,22 +26,23 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 30;
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
-    uint private START_TIME;
+    uint private immutable START_TIME;
 
 
-    mapping(uint256 => StakeDataPointer[]) internal stakesByEndDay;
-    mapping(address => StakeData[]) internal stakesByAccount;
+    mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
+    mapping(address => StakeData[]) private stakesByAccount;
 
-    ISocialTokenManager internal manager;
+    //ISocialTokenManager private manager;
+    ISocialTokenManager internal manager; // this cannot remain internal
 
     uint internal lastInterestAdjustment;
-    uint internal lastCompletedDistribution;
-    uint internal rewardPerMiningTask;
-    uint internal miningGasReserve;
+    uint private lastCompletedDistribution;
+    uint private rewardPerMiningTask;
+    uint private miningGasReserve;
 
-    uint internal baseInterestRate;
-    uint internal linearInterestBonus;
-    uint internal quadraticInterestBonus;
+    uint private baseInterestRate;
+    uint private linearInterestBonus;
+    uint private quadraticInterestBonus;
 
     // TODO: mint tokens
     constructor(address manager_, address[] memory defaultOperators_) 
@@ -281,7 +282,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function calculateInterestRate(address account, uint256 numberOfDays) public view returns(uint64) {
-        uint256 interest = baseInterestRate + linearInterestBonus * numberOfDays + quadraticInterestBonus * numberOfDays * numberOfDays + manager.getNftContract().interestBonus(account);
+        uint256 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + manager.getNftContract().interestBonus(account);
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }

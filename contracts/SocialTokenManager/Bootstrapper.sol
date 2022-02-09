@@ -9,16 +9,16 @@ import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
-contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
-    IDigitalDustDAO internal daoContract;
-    ISocialToken internal tokenContract;
-    ISocialTokenNFT internal nftContract;
+contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
+    IDigitalDustDAO public daoContract;
+    ISocialToken private tokenContract;
+    ISocialTokenNFT private nftContract;
 
     uint256 daoId;
 
     string constant private UNAUTHORIZED = "Not authorized";
     string constant private INVALID_INTERFACE = "Invalid interface";
-    bool internal initialized;
+    bool private initialized;
 
     constructor(address dao_, uint256 daoId_) {
         daoContract = IDigitalDustDAO(dao_);
@@ -54,7 +54,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     // Time to pass to a new manager
     function deprecateSelf(address newManager, address payable sendTo, bool startInterestAdjustment) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        // require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
+        require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
         tokenContract.setManager(newManager, startInterestAdjustment);
         nftContract.setManager(newManager);
@@ -75,7 +75,10 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function authorize(address account, Sensitivity level) external view {
-        if (level == Sensitivity.Council) {
+        if (level == Sensitivity.Basic) {
+            require(daoContract.accessOf(daoId, account) >= 100, UNAUTHORIZED);
+        }
+        else if (level == Sensitivity.Council) {
             require(daoContract.accessOf(daoId, account) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
@@ -90,12 +93,13 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         else if (level == Sensitivity.TokenContract) {
             require(account == address(tokenContract), UNAUTHORIZED);
         }
-        else if (level != Sensitivity.Basic) {
-            revert(UNAUTHORIZED); // invalid input, deny
+        else { // invalid input, deny
+            revert(UNAUTHORIZED);
         }
     }
 
     function adjustInterest() external view {
         // not implemented in this version
     }
+
 }
