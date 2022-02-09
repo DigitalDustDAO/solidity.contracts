@@ -15,12 +15,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     string public baseTokenURI;
 
     struct NFTData {
-        uint16 level,
-        uint32 group,
-        uint128 index
+        uint16 level;
+        uint32 group;
+        uint128 index;
     }
-
-    
 
     constructor(address manager_) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);
@@ -53,5 +51,5 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         baseTokenURI = newURI;
     }
 
-    function forge(uint256 quantity)
+    function forge(uint256 quantity) external {}
 }

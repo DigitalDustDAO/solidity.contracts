@@ -45,7 +45,7 @@ module.exports = async function (deployer, network, accounts) {
         const ltstInstance = await LongTailSocialTokenMock.deployed();
 
         // Initialize NFT
-        await deployer.deploy(SocialTokenNFTMock, stmInstance.address, "", "");
+        await deployer.deploy(SocialTokenNFTMock, stmInstance.address);
         const nftInstance = await SocialTokenNFTMock.deployed();
 
         // Re-initialize STM using NFT+LTST
