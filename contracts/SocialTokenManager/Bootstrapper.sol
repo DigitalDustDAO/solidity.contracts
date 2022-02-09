@@ -9,7 +9,7 @@ import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
-contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
+contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
     IDigitalDustDAO public daoContract;
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
@@ -75,7 +75,10 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function authorize(address account, Sensitivity level) external view {
-        if (level == Sensitivity.Council) {
+        if (level == Sensitivity.Basic) {
+            require(daoContract.accessOf(daoId, account) >= 100, UNAUTHORIZED);
+        }
+        else if (level == Sensitivity.Council) {
             require(daoContract.accessOf(daoId, account) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
@@ -90,8 +93,8 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         else if (level == Sensitivity.TokenContract) {
             require(account == address(tokenContract), UNAUTHORIZED);
         }
-        else if (level != Sensitivity.Basic) {
-            revert(UNAUTHORIZED); // invalid input, deny
+        else { // invalid input, deny
+            revert(UNAUTHORIZED);
         }
     }
 

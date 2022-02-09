@@ -12,6 +12,10 @@ abstract contract SocialTokenNFT is ISocialTokenNFT, ERC721 {
 
     ISocialTokenManager private manager;
 
+    constructor(address manager_) ERC721("Long Tail NFT", "LTNFT") {
+        manager = ISocialTokenManager(manager_);
+    }
+
     /**
      * @dev See {IERC165-supportsInterface}.
      */

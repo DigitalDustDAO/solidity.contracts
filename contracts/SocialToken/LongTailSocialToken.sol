@@ -218,7 +218,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
 
-    function getStakeValues (address account, uint64 id) public view returns(uint64, uint64, uint64, uint256) {
+    function getStakeValues (address account, uint32 id) public view returns(uint64, uint64, uint64, uint256) {
         return (stakesByAccount[account][id].start, stakesByAccount[account][id].end, 
             stakesByEndDay[stakesByAccount[account][id].end][stakesByAccount[account][id].index].interestRate, 
             stakesByAccount[account][id].principal);
@@ -271,7 +271,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function calculateInterestRate(address account, uint256 numberOfDays) public view returns(uint64) {
-        uint256 interest = baseInterestRate + linearInterestBonus * numberOfDays + quadraticInterestBonus * numberOfDays * numberOfDays + manager.getNftContract().interestBonus(account);
+        uint256 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + manager.getNftContract().interestBonus(account);
         // cap the value at what can be held in a uint64 and downcast it into a uint32
         return interest > type(uint64).max ? type(uint64).max : uint64(interest);
     }
