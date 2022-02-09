@@ -141,12 +141,6 @@ contract('LongTailSocialToken', (accounts) => {
                 });
         });
 
-        it('Should reject minting to user not authorized by the DAO project', async () => {
-            await expectRevert.unspecified(
-                LTST.mint(userD, 5 * minAmount)
-            );
-        });
-
         it('Should default to 0 balance for user with no tokens', async () => {
             const balance = await LTST.balanceOf(userD, { from: userD })
                 .then(n => n.toNumber());
