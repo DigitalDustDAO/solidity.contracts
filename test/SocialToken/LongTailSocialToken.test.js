@@ -11,7 +11,7 @@ contract('LongTailSocialToken', (accounts) => {
     const nftAddress = '0x0000000000000000000000000000000000000321';
     const daoProjectId = 1000;
     let DAO, STM;
-    const [creator, userA, userB, userC, ...others] = accounts;
+    const [creator, userA, userB, userC, userD, ...others] = accounts;
     const RIGHTS = {
         none: 0,
         grant: 100,
@@ -26,7 +26,6 @@ contract('LongTailSocialToken', (accounts) => {
         LTST = await LongTailSocialTokenMock.deployed();
     });
 
-    
     describe('constructor', () => {
         it('sets the manager address', async () => {
             const managerAddress = await LTST.getManager();
@@ -121,28 +120,50 @@ contract('LongTailSocialToken', (accounts) => {
         });
     });
 
-    contract.only('stake', () => {
+    contract('stake', () => {
         const [minAmount, minDays, maxDays] = [10**11, 30, 5844];
 
         before(async () => {
-            await LTST.setBalance(creator, 5 * minAmount);
-            await LTST.setBalance(userB, minAmount);
+            // mint some tokens for creator, userA
+            await LTST.mint(creator, 5 * minAmount);
+            await LTST.mint(userB, minAmount);
 
-            const balanceOfCreator = await LTST.balanceOf(creator, { from: creator })
-                .then(n => n.toNumber());
-            expect(balanceOfCreator).to.equal(5 * minAmount);
+            await LTST.balanceOf(creator, { from: creator })
+                .then(n => {
+                    const balance = n.toNumber();
+                    expect(balance).to.equal(5 * minAmount);
+                });
 
-            const balanceOfUserB = await LTST.balanceOf(userB, { from: userB })
-                .then(n => n.toNumber());
-            expect(balanceOfUserB).to.equal(minAmount);
+            await LTST.balanceOf(userB, { from: userB })
+                .then(n => {
+                    const balance = n.toNumber();
+                    expect(balance).to.equal(minAmount);
+                });
+        });
 
-            const balanceOfUserC = await LTST.balanceOf(userC, { from: userC })
+        it('Should reject minting to user not authorized by the DAO project', async () => {
+            await expectRevert.unspecified(
+                LTST.mint(userD, 5 * minAmount)
+            );
+        });
+
+        it('Should default to 0 balance for user with no tokens', async () => {
+            const balance = await LTST.balanceOf(userD, { from: userD })
                 .then(n => n.toNumber());
-            expect(balanceOfUserC).to.equal(0);
+            expect(balance).to.equal(0);
         });
 
         it('Should stake the minimum amount and duration for creator', async () => {
-            await LTST.stake(minAmount + 1, minDays + 1, { from: creator });
+            const receipt = await LTST.stake(minAmount, minDays, { from: creator });
+
+            await expectEvent(receipt, 'Staked', {
+                account: creator,
+                duration: new BN(minDays),
+                endDay: new BN(37),
+                amount: new BN(minAmount),
+                interestRate: new BN(9800),
+                id: new BN(0)
+            });
         });
 
         it('Should reject insufficient stake amount', async () => {
@@ -151,26 +172,74 @@ contract('LongTailSocialToken', (accounts) => {
             );
         });
 
+        it('Should reject insufficient balance', async () => {
+            await expectRevert.unspecified(
+                LTST.stake(minAmount, minDays, { from: userC })
+            );
+        });
+
         it('Should reject insufficient duration', async () => {
             await expectRevert.unspecified(
                 LTST.stake(minAmount, minDays - 1, { from: creator })
             );
         });
+
+        it('Should reject excessive duration', async () => {
+            await expectRevert.unspecified(
+                LTST.stake(minAmount, maxDays + 1, { from: creator })
+            );
+        });
     });
 
-    describe('unstake', () => {});
+    contract('unstake', () => {
+        const [minAmount, minDays, maxDays] = [10**11, 30, 5844];
+
+        before(async () => {
+            await LTST.mint(creator, 5 * minAmount);
+        });
+
+        it('Should unstake a valid stake', async () => {
+            const stakeNumber = await LTST.stake(minAmount, minDays, { from: creator });
+
+            // const stakes = await LTST.getStakeValues(creator)
+            // console.log('stakeNumber:', stakeNumber);
+
+            // await LTST.unstake(stakeNumber, { from: creator });
+        });
+    });
+
     describe.skip('mine', () => {});
     describe('forge', () => {});
     describe('getNumMiningTasks', () => {});
     describe('getContractInterestRates', () => {});
-    describe('getStakeValues', () => {});
+
+    describe('getStakeValues', () => {
+        it('Returns a valid stake', async () => {
+            const [
+                start, end, interestRate, principal
+            ] = await LTST.getStakeValues(creator, 0, { from: creator })
+                .then(response => Object.values(response).map(n => n.toNumber()));
+
+            expect(start).to.equal(7);
+            expect(end).to.equal(37);
+            expect(interestRate).to.equal(9800);
+            expect(principal).to.equal(100000000000);
+        });
+
+        it('Fails to return a stake index above the current index', async () => {
+            await expectRevert.unspecified(
+                LTST.getStakeValues(creator, 5, { from: creator })
+            );
+        });
+    });
+
     describe('getCurrentDay', () => {});
     describe('getVotingPower', () => {});
     describe('calculateInterest', () => {});
     describe('_votingWeight', () => {});
     describe('_fullInterest', () => {});
 
-    contract.only('calculateInterestRate', () => {
+    contract('calculateInterestRate', () => {
         const expectedRates = {
             30: 9800,
             45: 21425,
