@@ -10,7 +10,7 @@ contract('SocialTokenManager', (accounts) => {
     const nftAddress = '0x0000000000000000000000000000000000000321';
     const daoProjectId = 1000;
     let DAO, STM, STNFT;
-    const [creator, userA, userB, ...others] = accounts;
+    const [creator, userA, _userB, _userC, userD, ...others] = accounts;
     const RIGHTS = {
         none: 0,
         grant: 100,
@@ -70,9 +70,23 @@ contract('SocialTokenManager', (accounts) => {
                 sensitivity = ISocialTokenManager.Sensitivity;
             });
 
+            it('Should authorize creator w/ Council', async () => {
+                await authorize(creator, sensitivity.Council, { from: creator });
+            });
+
             it('Should authorize creator w/ Elder', async () => {
                 await authorize(creator, sensitivity.Elder, { from: creator });
             });
+
+            it('Should authorize creator w/ Maintainance', async () => {
+                await authorize(creator, sensitivity.Maintainance, { from: creator });
+            });
+
+            it.skip('Should authorize NFT contract w/ NFTContract', () => {});
+            it.skip('Should reject user w/ NFTContract', () => {});
+
+            it.skip('Should authorize token contract w/ TokenContract', () => {});
+            it.skip('Should reject user w/ TokenContract', () => {});
 
             it('Should reject creator w/ invalid level', async () => {
                 await expectRevert(
@@ -80,12 +94,9 @@ contract('SocialTokenManager', (accounts) => {
                     'value out-of-bounds'
                 );
             });
-    
-            it('Should reject userA w/ Basic', async () => {
-                await expectRevert(
-                    authorize(userA, sensitivity.Basic, { from: userA }),
-                    'Not authorized'
-                );
+
+            it('Should authorize anyone w/ Basic', async () => {
+                await authorize(userD, sensitivity.Basic, { from: userD });
             });
         });
     });
