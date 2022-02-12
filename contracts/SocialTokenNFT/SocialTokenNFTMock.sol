@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.11;
 
-import "./SocialTokenNFT.sol";
+import "./LongTailSocialNFT.sol";
 
 contract SocialTokenNFTMock is LongTailSocialNFT {
     constructor(
