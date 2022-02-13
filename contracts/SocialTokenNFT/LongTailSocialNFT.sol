@@ -190,7 +190,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         return sizes;
     }
 
-    function getBounties(address account) public view returns(uint256 number) {
+    function getClaimableBountyCount(address account) public view returns(uint256 number) {
         return unclaimedBounties[account].length;
     }
 
@@ -199,7 +199,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
      */
     function collectBounties(uint256 number) public {
         
-        NFTData storage item;
+        NFTData memory item;
         while (unclaimedBounties[_msgSender()].length > 0 && number > 0) {
             item = unclaimedBounties[_msgSender()][unclaimedBounties[_msgSender()].length - 1];
 
@@ -213,8 +213,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
                     (itemsInGroup[item.group][item.level].nextIndex + 1) % itemsInGroup[item.group][item.level].size;
             }
 
-            _safeMint(_msgSender(), item);
             unclaimedBounties[_msgSender()].pop();
+            _safeMint(_msgSender(), item);
+
+            number--;
         }
     }
 
