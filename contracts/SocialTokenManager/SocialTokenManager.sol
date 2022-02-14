@@ -29,9 +29,6 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         return type(ISocialTokenManager).interfaceId;
     }
 
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return 
             interfaceId == type(ISocialTokenManager).interfaceId
