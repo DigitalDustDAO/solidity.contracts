@@ -141,7 +141,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         require(recipiant != address(0));
 
         if (tokenReward) {
-            manager.getTokenContract().forge(recipiant, -tokenRewardPerBounty);
+            manager.getTokenContract().forge(recipiant, tokenRewardPerBounty);
         }
 
         for(uint256 i = 0;i < nftAwards.length;i++) {
@@ -228,7 +228,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         require(quantity <= maximumElementMint);
         require(quantity > 0);
 
-        manager.getTokenContract().forge(_msgSender(), int256(quantity * elementMintCost));
+        manager.getTokenContract().forge(_msgSender(), int256(quantity * elementMintCost) * -1);
 
         for (uint256 i = 0;i < quantity;i++) {
             _safeMint(_msgSender(), NFTData (0, 0, nextElementIndex));
@@ -253,7 +253,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
 
         // attempt to deduct fuel cost
         if (forgeCost > 0) {
-            manager.getTokenContract().forge(_msgSender(), int256(forgeCost));
+            manager.getTokenContract().forge(_msgSender(), int256(forgeCost) * -1);
         }
 
         // delete the old NFTs

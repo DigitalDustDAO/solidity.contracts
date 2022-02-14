@@ -201,10 +201,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     function forge(address account, int256 amount) virtual external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
 
-        if (amount > 0) {
+        if (amount < 0) {
             _burn(account, uint256(amount), "", "");
         }
-        else if (amount < 0) {
+        else if (amount > 0) {
             _mint(account, uint256(-amount), "", "", 0);
         }
     }
