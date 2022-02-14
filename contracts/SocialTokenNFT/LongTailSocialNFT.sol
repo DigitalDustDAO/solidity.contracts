@@ -84,7 +84,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         interestBonuses[level] = newBonus;
     }
 
-    function setForgeValues(uint256 newMax, uint256 newElementCost, uint256 newForgeCost, uint256 rewardPerBounty) public {
+    function setForgeValues(uint256 newMax, uint256 newElementCost, uint256 newForgeCost, uint256 rewardPerBounty) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         maximumElementMint = newMax;

@@ -44,7 +44,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private linearInterestBonus;
     uint private quadraticInterestBonus;
 
-    // TODO: mint tokens
     constructor(address manager_, address[] memory defaultOperators_) 
         ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
 
@@ -59,6 +58,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         quadraticInterestBonus = 10;
         rewardPerMiningTask = 50;
         miningGasReserve = 1500;
+
+        // mint to sender for now
+        // TODO: mint to LP
+        _mint(_msgSender(), 1000000000000000000000000, "", "");
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
