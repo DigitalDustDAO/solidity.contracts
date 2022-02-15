@@ -28,6 +28,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     }
 
     uint private constant MAXIMUM_LEVEL = 8;
+    string private constant SLASH = "/";
 
     mapping(uint256 => NFTData) private dataMap;
     mapping(uint256 => uint128) private totalOfGroup;
@@ -171,13 +172,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         if (bytes(baseTokenURI).length == 0)
             return "";
 
-        string memory path = string(abi.encodePacked(baseTokenURI, dataMap[tokenId].level.toString()));
-        path = string(abi.encodePacked(path, "/"));
-        path = string(abi.encodePacked(path, dataMap[tokenId].group.toString()));
-        path = string(abi.encodePacked(path, "/"));
-        path = string(abi.encodePacked(path, dataMap[tokenId].index.toString()));
-
-        return path;
+        return string(abi.encodePacked(baseTokenURI, dataMap[tokenId].level.toString(), SLASH, 
+            dataMap[tokenId].group.toString(), SLASH, dataMap[tokenId].index.toString()));
     }
 
     function getGroupSizes(uint64 group) public view returns(uint128[MAXIMUM_LEVEL - 1] memory) {

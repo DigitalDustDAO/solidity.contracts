@@ -62,6 +62,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // mint to sender for now
         // TODO: mint to LP
         _mint(_msgSender(), 1000000000000000000000000, "", "");
+
+        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("SocialToken"), address(this));
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
