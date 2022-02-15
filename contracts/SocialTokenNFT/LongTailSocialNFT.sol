@@ -27,7 +27,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         uint128 nextIndex;
     }
 
-    uint private constant MAXIMUM_LEVEL = 8;
+    uint256 private constant MAXIMUM_LEVEL = 8;
     string private constant SLASH = "/";
 
     mapping(uint256 => NFTData) private dataMap;
@@ -156,13 +156,18 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
      * Public views
      */
     function interestBonus(address account) external view returns(uint64) {
-        int256 maxLevel = int(MAXIMUM_LEVEL);
+        uint256 maxLevel = MAXIMUM_LEVEL;
         unchecked {
-            while(maxLevel >= 0 && levelBalances[account][uint256(maxLevel)] == 0) {
-                maxLevel--;
+            while(levelBalances[account][maxLevel] == 0) {
+                if (maxLevel == 0) {
+                    return 0;
+                }
+                else {
+                    maxLevel--;
+                }
             }
 
-            return maxLevel >= 0 ? interestBonuses[uint256(maxLevel)] : 0;
+            return interestBonuses[maxLevel];
         }
     }
 
