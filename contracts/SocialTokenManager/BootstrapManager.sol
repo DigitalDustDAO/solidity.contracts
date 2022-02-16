@@ -9,7 +9,7 @@ import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
-contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
+contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     IDigitalDustDAO private daoContract;
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
@@ -23,10 +23,6 @@ contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
     constructor(address dao_, uint256 daoId_) {
         daoContract = IDigitalDustDAO(dao_);
         daoId = daoId_;
-    }
-
-    function getInterfaceId() public pure returns (bytes4) {
-        return type(ISocialTokenManager).interfaceId;
     }
 
     /**

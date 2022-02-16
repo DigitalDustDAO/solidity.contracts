@@ -26,10 +26,6 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         nftContract = ISocialTokenNFT(nftAddr);
     }
 
-    function getInterfaceId() public pure returns (bytes4) {
-        return type(ISocialTokenManager).interfaceId;
-    }
-
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return 
             interfaceId == type(ISocialTokenManager).interfaceId

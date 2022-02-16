@@ -7,8 +7,10 @@ import "./SocialTokenManager.sol";
 contract SocialTokenManagerMock is SocialTokenManager {
     constructor(
         address dao_,
-        uint256 daoId_
-    ) SocialTokenManager(dao_, daoId_) {}
+        uint256 daoId_,
+        address tokenAddr_,
+        address nftAddr_
+    ) SocialTokenManager(dao_, daoId_, tokenAddr_, nftAddr_) {}
 
     function callTokenSetManager(address newManager, bool startInterestAdjustment) public {
         tokenContract.setManager(newManager, startInterestAdjustment);
