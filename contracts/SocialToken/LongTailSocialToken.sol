@@ -287,9 +287,12 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function calculateInterestRate(address account, uint256 numberOfDays) public view returns(uint64) {
-        uint256 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + manager.getNftContract().interestBonus(account);
-        // cap the value at what can be held in a uint64 and downcast it into a uint32
-        return interest > type(uint64).max ? type(uint64).max : uint64(interest);
+        // These values should never be set high enough that they *could* overflow. If they do, however, then it's better to rollover than to revert.
+        unchecked {
+            uint256 interest = baseInterestRate + (linearInterestBonus * numberOfDays) + (quadraticInterestBonus * numberOfDays * numberOfDays) + manager.getNftContract().interestBonus(account);
+            // cap the value at what can be held in a uint64 and downcast it into a uint32
+            return interest > type(uint64).max ? type(uint64).max : uint64(interest);
+        }
     }
 
     function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal view override {

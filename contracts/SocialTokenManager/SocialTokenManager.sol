@@ -18,11 +18,12 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     string constant private UNAUTHORIZED = "Not authorized";
     string constant private INVALID_INTERFACE = "Invalid interface";
-    bool internal initialized;
 
-    constructor(address dao_, uint256 daoId_) {
+    constructor(address dao_, uint256 daoId_, address tokenAddr, address nftAddr) {
         daoContract = IDigitalDustDAO(dao_);
         daoId = daoId_;
+        tokenContract = ISocialToken(tokenAddr);
+        nftContract = ISocialTokenNFT(nftAddr);
     }
 
     function getInterfaceId() public pure returns (bytes4) {
@@ -35,23 +36,10 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
             || super.supportsInterface(interfaceId);
     }
 
-    function initialize(address tokenAddr, address nftAddr) public {
-        this.authorize(_msgSender(), Sensitivity.Elder);
-        require(
-            // ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId) &&
-            ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId),
-            INVALID_INTERFACE
-        );
-        tokenContract = ISocialToken(tokenAddr);
-        nftContract = ISocialTokenNFT(nftAddr);
-
-        initialized = true;
-    }
-
     // Time to pass to a new manager
-    function deprecateSelf(address newManager, address payable sendTo, bool startInterestAdjustment) public {
+    function upgrade(address newManager, address payable sendTo, bool startInterestAdjustment) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        // require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
+        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
         tokenContract.setManager(newManager, startInterestAdjustment);
         nftContract.setManager(newManager);
