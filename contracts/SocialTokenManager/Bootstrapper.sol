@@ -10,7 +10,7 @@ import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
 contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
-    IDigitalDustDAO public daoContract;
+    IDigitalDustDAO private daoContract;
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
 
@@ -52,13 +52,15 @@ contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
     }
 
     // Time to pass to a new manager
-    function deprecateSelf(address newManager, address payable sendTo, bool startInterestAdjustment) public {
+    function upgrade(address newManager, address payable sendTo) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(initialized && ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
+        require(initialized);
+        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
-        tokenContract.setManager(newManager, startInterestAdjustment);
+        tokenContract.setManager(newManager, false);
         nftContract.setManager(newManager);
 
+        initialized = false;
         selfdestruct(sendTo);
     }
 
@@ -67,10 +69,12 @@ contract Bootstrapper is Context, ISocialTokenManager, ERC165 {
     }
 
     function getTokenContract() external view returns(ISocialToken) {
+        require(initialized);
         return tokenContract;
     }
 
     function getNftContract() external view returns(ISocialTokenNFT) {
+        require(initialized);
         return nftContract;
     }
 
