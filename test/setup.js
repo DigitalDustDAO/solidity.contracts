@@ -40,6 +40,7 @@ const deployBaseMocks = async () => {
     await BSTM.initialize(LTST.address, NFT.address);
 
     return {
+        daoProjectId,
         DAO,
         BSTM,
         LTST,
