@@ -66,6 +66,9 @@ interface IMeasure {
         uint256 amount
     ) external returns (bool);
 
+    function increaseAllowance(address account, address spender, uint256 addedValue) external;
+    function decreaseAllowance(address account, address spender, uint256 subtractedValue) external;
+
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).

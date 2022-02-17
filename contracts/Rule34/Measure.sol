@@ -143,11 +143,10 @@ contract Measure is Context, Ownable, IMeasure {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address account, address spender, uint256 addedValue) public virtual returns (bool) {
+    function increaseAllowance(address account, address spender, uint256 addedValue) public virtual {
         require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
 
         _approve(account, spender, _allowances[account][spender] + addedValue);
-        return true;
     }
 
     /**
@@ -164,7 +163,7 @@ contract Measure is Context, Ownable, IMeasure {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address account, address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address account, address spender, uint256 subtractedValue) public virtual {
         require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
 
         uint256 currentAllowance = _allowances[account][spender];
@@ -172,8 +171,6 @@ contract Measure is Context, Ownable, IMeasure {
         unchecked {
             _approve(account, spender, currentAllowance - subtractedValue);
         }
-
-        return true;
     }
 
     /**
