@@ -35,7 +35,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     // Time to pass to a new manager
     function upgrade(address newManager, address payable sendTo, bool startInterestAdjustment) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
+        //require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
         tokenContract.setManager(newManager, startInterestAdjustment);
         nftContract.setManager(newManager);

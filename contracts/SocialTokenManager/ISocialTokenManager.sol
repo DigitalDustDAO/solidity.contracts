@@ -22,7 +22,6 @@ interface ISocialTokenManager is IERC165 {
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
 
-    //function authorize(address source, address target, Sensitivity level) external view;
     function authorize(address source, Sensitivity level) external view;
     function adjustInterest() external view;
 }

@@ -9,9 +9,6 @@ import "./IRule34.sol";
 contract Rule34 is IRule34, ERC777, ERC165 {
 
     constructor(address[] memory defaultOperators_) ERC777("Rule 34", "R34", defaultOperators_) {
-        _mint(_msgSender(), 1000000000000000000000000, "", "");
-
-        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("Rule34Token"), address(this));
     }
 
     function setTokenData(uint128 startPos, uint128 resumePos, string memory insert) public {
@@ -19,7 +16,7 @@ contract Rule34 is IRule34, ERC777, ERC165 {
 
     }
 
-    function getTokenUri(address account, address nftContract) external view {
+    function getTokenUri(address account, address nftContract) external view returns(string memory) {
 
     }
 

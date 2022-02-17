@@ -36,11 +36,11 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
 
     function initialize(address tokenAddr, address nftAddr) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(
-            // ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId) &&
-            ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId),
-            INVALID_INTERFACE
-        );
+        // require(
+        //     // ISocialToken(tokenAddr).supportsInterface(type(ISocialToken).interfaceId) &&
+        //     ISocialTokenNFT(nftAddr).supportsInterface(type(ISocialTokenNFT).interfaceId),
+        //     INVALID_INTERFACE
+        // );
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
 
