@@ -119,7 +119,14 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         // send 
         _send(stakeAccount, address(this), amount, "", "", false);
 
-        emit Staked(stakeAccount, numberOfDays, uint64(endDay), amount, stakesByEndDay[endDay][endDayIndex].interestRate, uint32(accountIndex));
+        emit Staked(
+            stakeAccount,
+            numberOfDays,
+            uint64(endDay),
+            amount,
+            stakesByEndDay[endDay][endDayIndex].interestRate,
+            uint32(accountIndex)
+        );
 
         return uint32(accountIndex);
     }

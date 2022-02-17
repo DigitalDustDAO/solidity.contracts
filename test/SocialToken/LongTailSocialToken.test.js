@@ -139,9 +139,33 @@ describe('LongTailSocialToken', () => {
         });
 
         it('Should stake the minimum amount and duration for creator', async () => {
+            const amount = minAmount;
+            const numberOfDays = minDays;
             await expect(
-                LTST.connect(creator).stake(minAmount * 3, minDays * 3)
-            ).to.emit(LTST, 'Staked');
+                LTST.connect(creator).stake(amount, numberOfDays)
+            ).to.emit(LTST, 'Staked').withArgs(
+                creator.address,
+                numberOfDays,
+                numberOfDays + 7,
+                amount,
+                27610,
+                0
+            );
+        });
+
+        it('Should stake a larger amount and duration', async () => {
+            const amount = minAmount * 3;
+            const numberOfDays = minDays * 3;
+            await expect(
+                LTST.connect(creator).stake(amount, numberOfDays)
+            ).to.emit(LTST, 'Staked').withArgs(
+                creator.address,
+                numberOfDays,
+                numberOfDays + 7,
+                amount,
+                244810,
+                1
+            );
         });
 
         it('Should reject insufficient stake amount', async () => {
@@ -170,13 +194,16 @@ describe('LongTailSocialToken', () => {
     });
 
     describe('unstake', () => {
-        const [minAmount, minDays, maxDays] = [10**11, 30, 5844];
-
         it('Should unstake a valid stake', async () => {
-            // await LTST.connect(creator).stake(minAmount, minDays);
-            // const stakes = await LTST.getStakeValues(creator.address, 0)
-            // console.log('stakes:', stakes);
-            await LTST.connect(creator).unstake(1);
+            await expect(
+                LTST.connect(creator).unstake(1)
+            ).to.emit(LTST, 'RedeemedStake');
+        });
+
+        it('Should revert an invalid (or unstaked) stake id', async () => {
+            await expect(
+                LTST.connect(creator).unstake(1)
+            ).to.be.reverted;
         });
     });
 
@@ -189,15 +216,15 @@ describe('LongTailSocialToken', () => {
         it('Returns a valid stake', async () => {
             const [
                 start, end, interestRate, principal
-            ] = await LTST.connect(creator).getStakeValues(creator.address, 0);
+            ] = await LTST.getStakeValues(creator.address, 0);
 
             expect(start).to.equal(7);
-            expect(end).to.equal(97);
-            expect(interestRate).to.equal(244810);
-            expect(principal).to.equal(300000000000);
+            expect(end).to.equal(37);
+            expect(interestRate).to.equal(27610);
+            expect(principal).to.equal(100000000000);
         });
 
-        it('Fails to return a stake index above the current index', async () => {
+        it('Reverts on an invalid stakeId', async () => {
             await expect(
                 LTST.connect(userA).getStakeValues(creator.address, 5)
             ).to.be.reverted;

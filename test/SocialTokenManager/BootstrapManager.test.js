@@ -2,7 +2,7 @@ const { expect } = require("chai");
 require("@nomiclabs/hardhat-waffle");
 const { deployBaseMocks } = require('../setup');
 
-describe('Bootstrapper', (accounts) => {
+describe('BootstrapManager', (accounts) => {
     let DAO, BSTM, STNFT;
     const zeroAddress = '0x0000000000000000000000000000000000000000';
     const tokenAddress = '0x0000000000000000000000000000000000000123';
