@@ -4,21 +4,28 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "compile": "npx truffle compile",
-    "develop": "npx truffle develop",
-    "test": "npx truffle test",
-    "test-compile-none": "npx truffle test --compile-none"
+    "compile": "npx hardhat compile",
+    "develop": "npx hardhat develop",
+    "size": "npx hardhat size-contracts",
+    "test": "npx hardhat test",
+    "test-compile-none": "npx hardhat test --compile-none"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.4",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.4.2",
     "@openzeppelin/contracts-upgradeable": "^4.4.2",
     "@openzeppelin/test-helpers": "^0.5.15",
     "@truffle/hdwallet-provider": "^2.0.0",
+    "ethers": "^5.5.4",
+    "hardhat-contract-sizer": "^2.4.0",
+    "mocha": "^9.2.0",
     "truffle": "^5.4.30",
     "truffle-contract-size": "^2.0.1",
-    "truffle-flattener": "^1.5.0"
+    "truffle-flattener": "^1.5.0",
+    "web3": "^1.7.0"
   }
 }
