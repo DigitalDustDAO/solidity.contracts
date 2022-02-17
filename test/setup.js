@@ -37,7 +37,7 @@ const deployBaseMocks = async () => {
     await NFT.deployed();
 
     // Re-initialize BSM using NFT+LTST
-    // await BSTM.initialize(LTST.address, NFT.address);
+    await BSTM.initialize(LTST.address, NFT.address);
 
     return {
         DAO,
