@@ -32,6 +32,10 @@ describe('DigitalDustDAO', () => {
         });
     });
 
+    describe.skip('penaltyOf', () => {});
+    describe.skip('accessOf', () => {});
+    describe.skip('setPenalty', () => {});
+
     describe('setRights', () => {
         it('userA should not be allowed to increase their own rights', async () => {
             await expect(
