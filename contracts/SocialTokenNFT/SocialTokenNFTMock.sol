@@ -9,7 +9,15 @@ contract SocialTokenNFTMock is LongTailSocialNFT {
         address manager_
     ) LongTailSocialNFT(manager_) {}
 
+    function getInterfaceId() external pure returns(bytes4) {
+        return type(ISocialTokenNFT).interfaceId;
+    }
+
     function getManager() external view returns (ISocialTokenManager) {
         return manager;
+    }
+
+    function assertSupportsInterface(bytes4 interfaceId) public view virtual {
+        require(supportsInterface(interfaceId));
     }
 }

@@ -208,9 +208,9 @@ describe('LongTailSocialToken', () => {
     });
 
     describe.skip('mine', () => {});
-    describe('forge', () => {});
-    describe('getNumMiningTasks', () => {});
-    describe('getContractInterestRates', () => {});
+    describe.skip('forge', () => {});
+    describe.skip('getNumMiningTasks', () => {});
+    describe.skip('getContractInterestRates', () => {});
 
     describe('getStakeValues', () => {
         it('Returns a valid stake', async () => {
@@ -231,11 +231,11 @@ describe('LongTailSocialToken', () => {
         });
     });
 
-    describe('getCurrentDay', () => {});
-    describe('getVotingPower', () => {});
-    describe('calculateInterest', () => {});
-    describe('_votingWeight', () => {});
-    describe('_fullInterest', () => {});
+    describe.skip('getCurrentDay', () => {});
+    describe.skip('getVotingPower', () => {});
+    describe.skip('calculateInterest', () => {});
+    describe.skip('_votingWeight', () => {});
+    describe.skip('_fullInterest', () => {});
 
     describe('calculateInterestRate', () => {
         const expectedRates = {
@@ -256,6 +256,6 @@ describe('LongTailSocialToken', () => {
         });
     });
 
-    describe('transfer', () => {});
-    describe('send', () => {});
+    describe.skip('transfer', () => {});
+    describe.skip('send', () => {});
 });

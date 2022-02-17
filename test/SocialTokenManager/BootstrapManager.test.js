@@ -143,8 +143,6 @@ describe('BootstrapManager', (accounts) => {
         });
     });
 
-    describe('deprecateSelf', () => {});
-
     describe('getDaoContract', () => {
         it('Should return the DAO contract address', async () => {
             const daoAddress = await BSTM.getDaoContract();
