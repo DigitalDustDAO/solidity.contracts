@@ -15,8 +15,7 @@ interface ISocialTokenManager is IERC165 {
         Maintainance,
         Elder,
         TokenContract,
-        NFTContract,
-        Manager
+        NFTContract
     }
 
     function getDaoContract() external view returns(IDigitalDustDAO);

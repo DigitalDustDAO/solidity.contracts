@@ -2,19 +2,19 @@
 
 pragma solidity 0.8.11;
 
-import "./SocialTokenManager.sol";
+import "./Bootstrapper.sol";
 
-contract SocialTokenManagerMock is SocialTokenManager {
+contract SocialTokenManagerMock is Bootstrapper {
     constructor(
         address dao_,
         uint256 daoId_
-    ) SocialTokenManager(dao_, daoId_) {}
+    ) Bootstrapper(dao_, daoId_) {}
 
     function callTokenSetManager(address newManager, bool startInterestAdjustment) public {
-        tokenContract.setManager(newManager, startInterestAdjustment);
+        getTokenContract().setManager(newManager, startInterestAdjustment);
     }
 
     function callNftSetManager(address newManager) public {
-        nftContract.setManager(newManager);
+        getNftContract().setManager(newManager);
     }
 }

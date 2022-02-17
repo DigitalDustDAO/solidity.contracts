@@ -39,8 +39,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     uint64 [MAXIMUM_LEVEL] private interestBonuses;
     uint128 private elementSize;
     uint128 private nextElementIndex;
-    uint256 private nextTokenId;
 
+    uint256 public totalTokens;
     uint256 public maximumElementMint;
     uint256 public elementMintCost;
     uint256 public forgeCost;
@@ -281,11 +281,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     }
 
     function _safeMint(address to, NFTData memory tokenData) internal {
-        _safeMint(to, nextTokenId, "");
-        dataMap[nextTokenId] = tokenData;
+        _safeMint(to, totalTokens, "");
+        dataMap[totalTokens] = tokenData;
         levelBalances[to][tokenData.level]++;
         totalOfGroup[tokenData.group]++;
-        nextTokenId++;
+        totalTokens++;
     }
 
     function _burn(uint256 tokenId) internal override {
