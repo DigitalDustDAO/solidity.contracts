@@ -3,7 +3,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./IMeasure.sol";
 
@@ -128,7 +128,7 @@ contract Boobs is Context, IERC20, IERC20Metadata {
      * - `spender` cannot be the zero address.
      */
     function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        measureAddr.approve(_msgSender(), to, amount);
+        measureAddr.approve(_msgSender(), spender, amount);
         return true;
     }
 
