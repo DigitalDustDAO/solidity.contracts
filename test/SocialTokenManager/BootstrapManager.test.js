@@ -100,7 +100,7 @@ describe('Bootstrapper', (accounts) => {
                 );
         });
 
-        it('Should authorize creator w/ Manager', async () => {
+        it.skip('Should authorize creator w/ Manager', async () => {
             await BSTM
                 .authorize(
                     creator.address,
@@ -166,5 +166,28 @@ describe('Bootstrapper', (accounts) => {
         });
     });
 
-    describe('adjustInterest', () => {});
+    describe.skip('adjustInterest', () => {});
+
+    describe('upgrade', () => {
+        it('Should reject insufficient authorization', async () => {
+            await expect(
+                BSTM.connect(userC).upgrade(BSTM.address, creator.address)
+            ).to.be.reverted;
+        });
+
+        it('Should reject contracts that dont implement ISocialTokenManager', async () => {
+            await expect(
+                BSTM.connect(userC).upgrade(LTST.address, creator.address)
+            ).to.be.reverted;
+        });
+
+        it('Should allow creator to upgrade the contract', async () => {
+            await BSTM
+                .connect(creator)
+                .upgrade(
+                    BSTM.address,
+                    creator.address
+                );
+        });
+    });
 });
