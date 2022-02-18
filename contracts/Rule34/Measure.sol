@@ -3,8 +3,8 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+import "./IMeasureManager.sol";
 import "./IMeasure.sol";
 
 /**
@@ -32,23 +32,25 @@ import "./IMeasure.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract Measure is Context, Ownable, IMeasure {
+contract Measure is Context, IMeasure {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
 
-    address public maleAddress;
-    address public femaleAddress;
+    IMeasureManager private manager;
 
-    constructor() { 
+    constructor(address manager_) { 
         _mint(_msgSender(), 100000000000000000000000000);
+
+        manager = IMeasureManager(manager_);
     }
 
-    function setContractAddresses(address maleAddress_, address femaleAddress_) public onlyOwner {
-        //TODO: Sanity check
-        maleAddress = maleAddress_;
-        femaleAddress = femaleAddress_;
+    function setManager(address newManager) external {
+        require(_msgSender() == address(manager));
+        require(IMeasureManager(newManager).supportsInterface(type(IMeasureManager).interfaceId));
+
+        manager = IMeasureManager(newManager);
     }
 
     /**
@@ -74,7 +76,7 @@ contract Measure is Context, Ownable, IMeasure {
      * - the caller must have a balance of at least `amount`.
      */
     function transfer(address from, address to, uint256 amount) public virtual override {
-        require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
 
         _transfer(from, to, amount);
     }
@@ -94,7 +96,7 @@ contract Measure is Context, Ownable, IMeasure {
      * - `spender` cannot be the zero address.
      */
     function approve(address from, address to, uint256 amount) public virtual override {
-        require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
 
         _approve(from, to, amount);
     }
@@ -118,7 +120,7 @@ contract Measure is Context, Ownable, IMeasure {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
-        require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
 
         _transfer(sender, recipient, amount);
 
@@ -144,7 +146,7 @@ contract Measure is Context, Ownable, IMeasure {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address account, address spender, uint256 addedValue) public virtual {
-        require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
 
         _approve(account, spender, _allowances[account][spender] + addedValue);
     }
@@ -164,7 +166,7 @@ contract Measure is Context, Ownable, IMeasure {
      * `subtractedValue`.
      */
     function decreaseAllowance(address account, address spender, uint256 subtractedValue) public virtual {
-        require(_msgSender() == maleAddress || _msgSender() == femaleAddress);
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
 
         uint256 currentAllowance = _allowances[account][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");

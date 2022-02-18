@@ -12,5 +12,6 @@ interface IRule34 is IERC165 {
         uint128 NFTsRewarded
     );
 
+    function setManager(address newManager) external;
     function getTokenUri(address account, address nftContract) external view returns(string memory);
 }

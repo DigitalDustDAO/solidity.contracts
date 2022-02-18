@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./IMeasure.sol";
+import "./IMeasureManager.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -37,6 +38,7 @@ contract Boobs is Context, IERC20, IERC20Metadata {
     string private constant SYMBOL = "DICK";
 
     IMeasure private immutable measureAddr;
+    IMeasureManager private manager;
 
     /**
      * @dev Sets the values for {name} and {symbol}.
@@ -47,8 +49,9 @@ contract Boobs is Context, IERC20, IERC20Metadata {
      * All two of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(address measureAddress) {
+    constructor(address measureAddress, address managerAddress) {
         measureAddr = IMeasure(measureAddress);
+        manager = IMeasureManager(managerAddress);
     }
 
     /**
