@@ -223,6 +223,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     function forgeElements(uint256 quantity) public {
         require(quantity <= maximumElementMint);
         require(quantity > 0);
+        require(elementSize > 0);
 
         manager.getTokenContract().forge(_msgSender(), int256(quantity * elementMintCost) * -1);
 

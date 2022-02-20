@@ -86,5 +86,4 @@ contract BootstrapManager is Context, IMeasureManager, ERC165 {
     function adjustInterest() external view {
         // not implemented in this version
     }
-
 }
