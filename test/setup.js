@@ -44,7 +44,8 @@ const deployBaseMocks = async () => {
         DAO,
         BSTM,
         LTST,
-        NFT
+        NFT,
+        zeroAddress: '0x0000000000000000000000000000000000000000'
     };
 };
 
