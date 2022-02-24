@@ -188,6 +188,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         );
     }
 
+    function getTokenInfo(uint256 tokenId) public view returns(NFTData memory) {
+        return dataMap[tokenId];
+    }
+
     function getGroupSizes(uint64 group) public view returns(uint128[MAXIMUM_LEVEL - 1] memory) {
         uint128[MAXIMUM_LEVEL - 1] memory sizes;
 
@@ -285,11 +289,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
             template.group = uint64(selectedGroup);
         }
         
-        template.level++;
         template.index = itemsInGroup[template.group][template.level].nextIndex;
         itemsInGroup[template.group][template.level].nextIndex = 
             (itemsInGroup[template.group][template.level].nextIndex + 1) % itemsInGroup[template.group][template.level].size;
 
+        template.level++;
         return template;
     }
 
