@@ -142,19 +142,19 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         }
     }
 
-    function awardBounty(address recipiant, bool tokenReward, NFTData[] memory nftAwards) public {
+    function awardBounty(address recipient, bool tokenReward, NFTData[] memory nftAwards) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
-        require(recipiant != address(0));
+        require(recipient != address(0));
 
         if (tokenReward) {
-            manager.getTokenContract().forge(recipiant, tokenRewardPerBounty);
+            manager.getTokenContract().forge(recipient, tokenRewardPerBounty);
         }
 
         for(uint256 i = 0;i < nftAwards.length;i++) {
-            unclaimedBounties[recipiant].push(nftAwards[i]);
+            unclaimedBounties[recipient].push(nftAwards[i]);
         }
 
-        emit RewardIssued(recipiant, tokenReward ? int128(tokenRewardPerBounty) : int128(0), uint128(nftAwards.length));
+        emit RewardIssued(recipient, tokenReward ? int128(tokenRewardPerBounty) : int128(0), uint128(nftAwards.length));
     }
 
     /**
