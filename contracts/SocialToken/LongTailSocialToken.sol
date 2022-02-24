@@ -211,10 +211,10 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
 
         if (amount < 0) {
-            _burn(account, uint256(amount), "", "");
+            _burn(account, uint256(-amount), "", "");
         }
         else if (amount > 0) {
-            _mint(account, uint256(-amount), "", "", 0);
+            _mint(account, uint256(amount), "", "", 0);
         }
     }
 
