@@ -59,11 +59,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     /**
      * See {IERC165-supportsInterface}.
      */
-    // function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, IERC165) returns (bool) {
-    //     return 
-    //         interfaceId == type(ISocialTokenNFT).interfaceId
-    //         || super.supportsInterface(interfaceId);
-    // }
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721) returns (bool) {
+        return 
+            interfaceId == type(ISocialTokenNFT).interfaceId
+            || super.supportsInterface(interfaceId);
+    }
 
     /**
      * Manager upgrade function
@@ -80,12 +80,17 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
      */
     function setInterestBonus(uint256 level, uint64 newBonus) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
-        require(level <= MAXIMUM_LEVEL);
+        require(level < MAXIMUM_LEVEL);
 
         interestBonuses[level] = newBonus;
     }
 
-    function setForgeValues(uint256 newMax, uint256 newElementCost, uint256 newForgeCost, uint256 rewardPerBounty) external {
+    function setForgeValues(
+        uint256 newMax,
+        uint256 newElementCost,
+        uint256 newForgeCost,
+        uint256 rewardPerBounty
+    ) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         maximumElementMint = newMax;
@@ -172,8 +177,15 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         if (bytes(baseTokenURI).length == 0)
             return "";
 
-        return string(abi.encodePacked(baseTokenURI, dataMap[tokenId].level.toString(), SLASH, 
-            dataMap[tokenId].group.toString(), SLASH, dataMap[tokenId].index.toString()));
+        return string(
+            abi.encodePacked(
+                baseTokenURI, dataMap[tokenId].level.toString(),
+                SLASH, 
+                dataMap[tokenId].group.toString(),
+                SLASH,
+                dataMap[tokenId].index.toString()
+            )
+        );
     }
 
     function getGroupSizes(uint64 group) public view returns(uint128[MAXIMUM_LEVEL - 1] memory) {
