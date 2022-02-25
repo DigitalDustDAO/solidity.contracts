@@ -25,8 +25,6 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
         return 7;
     }
 
-    function mine() public override pure {}
-
     function getManager() external view returns (ISocialTokenManager) {
         return manager;
     }

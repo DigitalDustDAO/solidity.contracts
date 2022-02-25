@@ -256,6 +256,23 @@ describe('LongTailSocialToken', () => {
         });
     });
 
-    describe.skip('transfer', () => {});
-    describe.skip('send', () => {});
+    describe('transfer', () => {
+        it('Creator should transfer tokens to userA', async () => {
+            const transferAmount = 1000;
+            const initialBalance = await LTST.balanceOf(userA.address).then(n => n.toNumber());
+            await LTST.transfer(userA.address, transferAmount);
+            const finalBalance = await LTST.balanceOf(userA.address).then(n => n.toNumber());
+            expect(finalBalance).to.equal(initialBalance + transferAmount);
+        });
+    });
+
+    describe('send', () => {
+        it('Creator should send tokens to userA', async () => {
+            const transferAmount = 1000;
+            const initialBalance = await LTST.balanceOf(userA.address).then(n => n.toNumber());
+            await LTST.send(userA.address, transferAmount, "0x00");
+            const finalBalance = await LTST.balanceOf(userA.address).then(n => n.toNumber());
+            expect(finalBalance).to.equal(initialBalance + transferAmount);
+        });
+    });
 });
