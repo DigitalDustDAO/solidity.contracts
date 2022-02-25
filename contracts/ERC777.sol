@@ -325,7 +325,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         bytes memory userData,
         bytes memory operatorData
     ) internal virtual {
-        _mint(account, amount, userData, operatorData, true);
+        _mint(account, amount, userData, operatorData, false);
     }
 
     /**
