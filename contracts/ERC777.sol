@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (token/ERC777/ERC777.sol)
+// OpenZeppelin Contracts (last updated v4.5.0) (token/ERC777/ERC777.sol)
 
 pragma solidity ^0.8.0;
 
@@ -31,7 +31,7 @@ contract ERC777 is Context, IERC777, IERC20 {
 
     IERC1820Registry internal constant _ERC1820_REGISTRY = IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
-    mapping(address => uint256) internal _balances;
+    mapping(address => uint256) private _balances;
 
     uint256 private _totalSupply;
 
@@ -258,6 +258,9 @@ contract ERC777 is Context, IERC777, IERC20 {
     /**
      * @dev See {IERC20-approve}.
      *
+     * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
+     * `transferFrom`. This is semantically equivalent to an infinite approval.
+     *
      * Note that accounts cannot have allowance issued by their operators.
      */
     function approve(address spender, uint256 value) public virtual override returns (bool) {
@@ -268,6 +271,9 @@ contract ERC777 is Context, IERC777, IERC20 {
 
     /**
      * @dev See {IERC20-transferFrom}.
+     *
+     * NOTE: Does not update the allowance if the current allowance
+     * is the maximum `uint256`.
      *
      * Note that operator and allowance concepts are orthogonal: operators cannot
      * call `transferFrom` (unless they have allowance), and accounts with
@@ -287,11 +293,9 @@ contract ERC777 is Context, IERC777, IERC20 {
 
         _callTokensToSend(spender, holder, recipient, amount, "", "");
 
-        _move(spender, holder, recipient, amount, "", "");
+        _spendAllowance(holder, spender, amount);
 
-        uint256 currentAllowance = _allowances[holder][spender];
-        require(currentAllowance >= amount, "ERC777: transfer amount exceeds allowance");
-        _approve(holder, spender, currentAllowance - amount);
+        _move(spender, holder, recipient, amount, "", "");
 
         _callTokensReceived(spender, holder, recipient, amount, "", "", false);
 
@@ -321,7 +325,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         bytes memory userData,
         bytes memory operatorData
     ) internal virtual {
-        _mint(account, amount, userData, operatorData, 0);
+        _mint(account, amount, userData, operatorData, false);
     }
 
     /**
@@ -347,7 +351,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         uint256 amount,
         bytes memory userData,
         bytes memory operatorData,
-        int256 requireReceptionAck
+        bool requireReceptionAck
     ) internal virtual {
         require(account != address(0), "ERC777: mint to the zero address");
 
@@ -359,10 +363,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         _totalSupply += amount;
         _balances[account] += amount;
 
-        if (requireReceptionAck == 0)
-            _callTokensReceived(operator, address(0), account, amount, userData, operatorData, false);
-        if (requireReceptionAck > 0)
-            _callTokensReceived(operator, address(0), account, amount, userData, operatorData, true);
+        _callTokensReceived(operator, address(0), account, amount, userData, operatorData, requireReceptionAck);
 
         emit Minted(operator, account, amount, userData, operatorData);
         emit Transfer(address(0), account, amount);
@@ -460,7 +461,7 @@ contract ERC777 is Context, IERC777, IERC20 {
         address holder,
         address spender,
         uint256 value
-    ) internal {
+    ) internal virtual {
         require(holder != address(0), "ERC777: approve from the zero address");
         require(spender != address(0), "ERC777: approve to the zero address");
 
@@ -516,6 +517,28 @@ contract ERC777 is Context, IERC777, IERC20 {
             IERC777Recipient(implementer).tokensReceived(operator, from, to, amount, userData, operatorData);
         } else if (requireReceptionAck) {
             require(!to.isContract(), "ERC777: token recipient contract has no implementer for ERC777TokensRecipient");
+        }
+    }
+
+    /**
+     * @dev Spend `amount` form the allowance of `owner` toward `spender`.
+     *
+     * Does not update the allowance amount in case of infinite allowance.
+     * Revert if not enough allowance is available.
+     *
+     * Might emit an {Approval} event.
+     */
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = allowance(owner, spender);
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC777: insufficient allowance");
+            unchecked {
+                _approve(owner, spender, currentAllowance - amount);
+            }
         }
     }
 
