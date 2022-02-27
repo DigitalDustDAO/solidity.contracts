@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 import "./IMeasureManager.sol";
 import "./IMeasure.sol";
-import "./IRule34.sol";
+// import "./IRule34.sol";
 
 contract BootstrapManager is Context, IMeasureManager, ERC165 {
     IDigitalDustDAO daoContract;
@@ -72,6 +72,9 @@ contract BootstrapManager is Context, IMeasureManager, ERC165 {
         else if (level == Sensitivity.Elder) {
             require(daoContract.accessOf(daoId, account) >= 500, UNAUTHORIZED);
         }
+        else if (level == Sensitivity.Token) {
+            require(account == address(measureContract));
+        }
         else if (level == Sensitivity.TokenWrapper) {
             require(account == maleContract || account == famaleContract, UNAUTHORIZED);
         }
@@ -81,9 +84,5 @@ contract BootstrapManager is Context, IMeasureManager, ERC165 {
         else { // invalid input, deny
             revert(UNAUTHORIZED);
         }
-    }
-
-    function adjustInterest() external view {
-        // not implemented in this version
     }
 }

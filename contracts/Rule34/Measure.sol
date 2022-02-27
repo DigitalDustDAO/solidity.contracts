@@ -6,31 +6,10 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "./IMeasureManager.sol";
 import "./IMeasure.sol";
+import "./IRule34.sol";
 
 /**
- * @dev Implementation of the {IERC20} interface.
- *
- * This implementation is agnostic to the way tokens are created. This means
- * that a supply mechanism has to be added in a derived contract using {_mint}.
- * For a generic mechanism see {ERC20PresetMinterPauser}.
- *
- * TIP: For a detailed writeup see our guide
- * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
- * to implement supply mechanisms].
- *
- * We have followed general OpenZeppelin Contracts guidelines: functions revert
- * instead returning `false` on failure. This behavior is nonetheless
- * conventional and does not conflict with the expectations of ERC20
- * applications.
- *
- * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
- * This allows applications to reconstruct the allowance for all accounts just
- * by listening to said events. Other implementations of the EIP may not emit
- * these events, as it isn't required by the specification.
- *
- * Finally, the non-standard {decreaseAllowance} and {increaseAllowance}
- * functions have been added to mitigate the well-known issues around setting
- * allowances. See {IERC20-approve}.
+ * Implementation of the {IERC20} interface. Modified to be provide more accurate measurements.
  */
 contract Measure is Context, IMeasure {
     mapping(address => uint256) private _balances;
@@ -40,8 +19,8 @@ contract Measure is Context, IMeasure {
 
     IMeasureManager private manager;
 
-    constructor(address manager_) { 
-        _mint(_msgSender(), 100000000000000000000000000);
+    constructor(address manager_, uint256 supply) { 
+        _mint(_msgSender(), supply * 10**18);
 
         manager = IMeasureManager(manager_);
     }
@@ -51,6 +30,39 @@ contract Measure is Context, IMeasure {
         require(IMeasureManager(newManager).supportsInterface(type(IMeasureManager).interfaceId));
 
         manager = IMeasureManager(newManager);
+    }
+
+    function mintRule34Token() public {
+        _mintRule34Token(_msgSender());
+    }
+
+    function mintRule34Token(address account) external {
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
+
+        _mintRule34Token(account);
+    }
+
+    function _mintRule34Token(address account) private {
+        uint256 cost = manager.getRule34Contract().getTokenCost();
+
+        require(balanceOf(account) >= cost);
+
+        _burn(account, cost);
+        manager.getRule34Contract().awardRule34Token(account);
+    }
+
+    function liquidateRule34Token() public {
+        _liquidateRule34Token(_msgSender());
+    }
+
+    function liquidateRule34Token(address account) external {
+        manager.authorize(_msgSender(), IMeasureManager.Sensitivity.TokenWrapper);
+
+        _liquidateRule34Token(account);
+    }
+
+    function _liquidateRule34Token(address account) private {
+        _mint(account, manager.getRule34Contract().removeRule34Token(account));
     }
 
     /**

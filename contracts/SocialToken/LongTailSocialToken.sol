@@ -307,9 +307,19 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal view override {
-        if (to != address(0) && to != address(this)) {
-            manager.authorize(to, ISocialTokenManager.Sensitivity.Basic);
-        }
+    // function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal view override {
+    //     if (to != address(0) && to != address(this)) {
+    //         manager.authorize(to, ISocialTokenManager.Sensitivity.Basic);
+    //     }
+    // }
+
+    function send(address recipient, uint256 amount, bytes memory data) public virtual override {
+        manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
+        super.send(recipient, amount, data);
+    }
+
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+        manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
+        super.transfer(recipient, amount);
     }
 }

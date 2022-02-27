@@ -13,5 +13,9 @@ interface IRule34 is IERC165 {
     );
 
     function setManager(address newManager) external;
-    function getTokenUri(address account, address nftContract) external view returns(string memory);
+    //function getTokenUri(address account, address nftContract) external view returns(string memory);
+    function getTokenCost() external view returns(uint256 cost);
+
+    function awardRule34Token(address account) external;
+    function removeRule34Token(address account) external returns(uint256 value);
 }
