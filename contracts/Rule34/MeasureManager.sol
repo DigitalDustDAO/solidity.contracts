@@ -42,7 +42,7 @@ contract BootstrapManager is Context, IMeasureManager, ERC165 {
         measureContract = IMeasure(measureContract_);
         maleContract = maleContract_;
         famaleContract = famaleContract_;
-        rule34Contract = IRule34(rule34Contract);
+        rule34Contract = IRule34(rule34Contract_);
 
         initialized = true;
     }

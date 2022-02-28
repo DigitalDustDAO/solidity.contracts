@@ -4,6 +4,7 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
@@ -13,6 +14,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     IDigitalDustDAO internal daoContract;
     ISocialToken internal tokenContract;
     ISocialTokenNFT internal nftContract;
+    IERC20 internal auxTokenContract;
 
     uint256 daoId;
 
@@ -43,6 +45,21 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         selfdestruct(sendTo);
     }
 
+    function setAuxTokenContract(address contractAddress) public {
+        this.authorize(_msgSender(), Sensitivity.Elder);
+
+        auxTokenContract = IERC20(contractAddress);
+    }
+
+    function hasAuxToken(address account) public view returns(bool) {
+        if (address(auxTokenContract) == address(0)) {
+            return false;
+        }
+        else {
+            return auxTokenContract.balanceOf(account) > 0;
+        }
+    }
+
     function getDaoContract() public view returns(IDigitalDustDAO) {
         return daoContract;
     }
@@ -65,7 +82,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         else if (level == Sensitivity.Maintainance) {
             require(daoContract.rightsOf(daoId, account) >= 400, UNAUTHORIZED);
         }
-        else if (level == Sensitivity.NFTContract) {
+        else if (level == Sensitivity.AwardableContract) {
             require(account == address(nftContract), UNAUTHORIZED);
         }
         else if (level == Sensitivity.TokenContract) {

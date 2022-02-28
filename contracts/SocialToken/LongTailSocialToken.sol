@@ -207,8 +207,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    function forge(address account, int256 amount) virtual external {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.NFTContract);
+    function award(address account, int256 amount) virtual external {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
             _burn(account, uint256(-amount), "", "");
@@ -320,6 +320,6 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
-        super.transfer(recipient, amount);
+        return super.transfer(recipient, amount);
     }
 }

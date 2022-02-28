@@ -15,6 +15,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
     ISocialTokenManager internal manager;
 
     string public baseTokenURI;
+    string public auxTokenURI;
 
     struct NFTData {
         uint64 level;
@@ -99,10 +100,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         tokenRewardPerBounty = int256(rewardPerBounty);
     }
 
-    function setBaseURI(string memory newURI) external {
+    function setBaseURI(string memory newURI, string memory newAuxURI) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         baseTokenURI = newURI;
+        auxTokenURI = newAuxURI;
     }
 
     /**
@@ -147,7 +149,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         require(recipient != address(0));
 
         if (tokenReward) {
-            manager.getTokenContract().forge(recipient, tokenRewardPerBounty);
+            manager.getTokenContract().award(recipient, tokenRewardPerBounty);
         }
 
         for(uint256 i = 0;i < nftAwards.length;i++) {
@@ -171,7 +173,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         }
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         if (bytes(baseTokenURI).length == 0)
@@ -188,7 +190,27 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         );
     }
 
-    function getTokenInfo(uint256 tokenId) public view returns(NFTData memory) {
+    function tokenAuxURI(uint256 tokenId) public view virtual returns(string memory uri) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+
+        if (bytes(auxTokenURI).length == 0 || !manager.hasAuxToken(_msgSender())) {
+            return tokenURI(tokenId);
+        }
+
+        unchecked {
+            return string(
+                abi.encodePacked(
+                    auxTokenURI, dataMap[tokenId].level.toString(),
+                    SLASH, 
+                    (dataMap[tokenId].group + 34).toString(),
+                    SLASH,
+                    dataMap[tokenId].index.toString()
+                )
+            );
+        }
+    }
+
+    function getTokenInfo(uint256 tokenId) public view returns(NFTData memory info) {
         return dataMap[tokenId];
     }
 
@@ -241,7 +263,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         require(quantity > 0);
         require(elementSize > 0);
 
-        manager.getTokenContract().forge(_msgSender(), int256(quantity * elementMintCost) * -1);
+        manager.getTokenContract().award(_msgSender(), int256(quantity * elementMintCost) * -1);
 
         for (uint256 i = 0;i < quantity;i++) {
             _safeMint(_msgSender(), NFTData (0, 0, nextElementIndex));
@@ -266,7 +288,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
 
         // attempt to deduct fuel cost
         if (forgeCost > 0) {
-            manager.getTokenContract().forge(_msgSender(), int256(forgeCost) * -1);
+            manager.getTokenContract().award(_msgSender(), int256(forgeCost) * -1);
         }
 
         // delete the old NFTs

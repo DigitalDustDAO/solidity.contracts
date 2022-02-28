@@ -26,5 +26,5 @@ interface ISocialToken {
 
     function setManager(address newManager, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external;
-    function forge(address account, int256 amount) external;
+    function award(address account, int256 amount) external;
 }

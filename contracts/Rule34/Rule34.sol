@@ -50,6 +50,5 @@ contract Rule34 is IRule34, ERC20, ERC165 {
 
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         revert("This token cannot be transfered");
-        return false;
     }
 }
