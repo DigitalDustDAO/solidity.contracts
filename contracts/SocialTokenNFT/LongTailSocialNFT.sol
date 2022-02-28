@@ -144,11 +144,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         }
     }
 
-    function awardBounty(address recipient, bool tokenReward, NFTData[] memory nftAwards) public {
+    function awardBounty(address recipient, uint256 tokenReward, NFTData[] memory nftAwards) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(recipient != address(0));
 
-        if (tokenReward) {
+        if (tokenReward > 0) {
             manager.getTokenContract().award(recipient, tokenRewardPerBounty);
         }
 
@@ -190,24 +190,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
         );
     }
 
-    function tokenAuxURI(uint256 tokenId) public view virtual returns(string memory uri) {
+    function tokenAuxURI(uint256 tokenId) public view virtual returns(bool different, string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         if (bytes(auxTokenURI).length == 0 || !manager.hasAuxToken(_msgSender())) {
-            return tokenURI(tokenId);
+            return (false, tokenURI(tokenId));
         }
 
-        unchecked {
-            return string(
-                abi.encodePacked(
-                    auxTokenURI, dataMap[tokenId].level.toString(),
-                    SLASH, 
-                    (dataMap[tokenId].group + 34).toString(),
-                    SLASH,
-                    dataMap[tokenId].index.toString()
-                )
-            );
-        }
+        return (true, string(abi.encodePacked(auxTokenURI, keccak256(dataMap[tokenId]))));
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(NFTData memory info) {
