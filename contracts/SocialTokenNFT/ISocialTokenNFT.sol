@@ -8,7 +8,7 @@ interface ISocialTokenNFT {
     
     event RewardIssued (
         address indexed recipiant,
-        int128 tokensRewarded,
+        uint128 tokensRewarded,
         uint128 NFTsRewarded
     );
 
