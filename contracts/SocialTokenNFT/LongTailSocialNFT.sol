@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
+import "./IAuxCompatableNFT.sol";
 
-contract LongTailSocialNFT is ISocialTokenNFT, ERC721 {
+contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     using Strings for uint64;
     using Strings for uint128;
 

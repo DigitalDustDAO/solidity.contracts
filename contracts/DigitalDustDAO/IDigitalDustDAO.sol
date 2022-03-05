@@ -32,5 +32,5 @@ interface IDigitalDustDAO {
 
     function setRights(uint256 id, address account, uint32 rights) external;
 
-    function startProject(uint256 id, uint128 amount, bytes memory data) external;
+    function startProject(address owner, uint256 id, uint128 amount, bytes memory data) external;
 }
