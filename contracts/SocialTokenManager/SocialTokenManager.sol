@@ -74,13 +74,13 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Council) {
-            require(daoContract.accessOf(daoId, account) >= 400, UNAUTHORIZED);
+            require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.accessOf(daoId, account) >= 500, UNAUTHORIZED);
+            require(daoContract.accessOf(account, daoId) >= 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Maintainance) {
-            require(daoContract.rightsOf(daoId, account) >= 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.AwardableContract) {
             require(account == address(nftContract), UNAUTHORIZED);

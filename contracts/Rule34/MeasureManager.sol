@@ -67,10 +67,10 @@ contract BootstrapManager is Context, IMeasureManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Council) {
-            require(daoContract.accessOf(daoId, account) >= 400, UNAUTHORIZED);
+            require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.accessOf(daoId, account) >= 500, UNAUTHORIZED);
+            require(daoContract.accessOf(account, daoId) >= 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Token) {
             require(account == address(measureContract));

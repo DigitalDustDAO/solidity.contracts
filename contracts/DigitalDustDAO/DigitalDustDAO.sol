@@ -38,15 +38,15 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     }
 
     function setPenalty(address account, uint256 id, uint32 penalty) public {
-        require(rightsOf(id, _msgSender()) >= APPLY_PENALTY, "Not enough rights to set penalty");
+        require(rightsOf(_msgSender(), id) >= APPLY_PENALTY, "Not enough rights to set penalty");
         _balances[id][account].penalty = penalty;
 
         emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
     function setRights(address account, uint256 id, uint32 rights) public {
-        uint64 callerRights = rightsOf(id, _msgSender());
-        uint64 targetRights = rightsOf(id, account);
+        uint64 callerRights = rightsOf(_msgSender(), id);
+        uint64 targetRights = rightsOf(account, id);
         require(callerRights >= GRANT_RIGHTS, "Not enough rights to grant rights");
         require(
             callerRights >= REVOKE_RIGHTS
@@ -65,7 +65,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         uint256 id,
         uint128 amount
     ) public {
-        require(rightsOf(0, _msgSender()) >= START_PROJECT, "Not enough rights to start a project");
+        require(rightsOf(_msgSender(), 0) >= START_PROJECT, "Not enough rights to start a project");
         require(_activeProjects[id] == false, "Project id already exists");
 
         _activeProjects[id] = true;
