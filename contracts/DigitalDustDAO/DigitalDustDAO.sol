@@ -21,15 +21,15 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         emit SetRights(0, address(0), _msgSender(), type(uint32).max);
     }
 
-    function rightsOf(uint256 id, address account) public view returns (uint32 rights) {
+    function rightsOf(address account, uint256 id) public view returns (uint32 rights) {
         return _balances[id][account].rights;
     }
 
-    function penaltyOf(uint256 id, address account) public view returns (uint32 penalty) {
+    function penaltyOf(address account, uint256 id) public view returns (uint32 penalty) {
         return _balances[id][account].penalty;
     }
 
-    function accessOf(uint256 id, address account) public view returns (uint32 access) {
+    function accessOf(address account, uint256 id) public view returns (uint32 access) {
         return _balances[id][account].rights - _balances[id][account].penalty;
     }
 
@@ -37,14 +37,14 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         return _activeProjects[id];
     }
 
-    function setPenalty(uint256 id, address account, uint32 penalty) public {
+    function setPenalty(address account, uint256 id, uint32 penalty) public {
         require(rightsOf(id, _msgSender()) >= APPLY_PENALTY, "Not enough rights to set penalty");
         _balances[id][account].penalty = penalty;
 
         emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
-    function setRights(uint256 id, address account, uint32 rights) public {
+    function setRights(address account, uint256 id, uint32 rights) public {
         uint64 callerRights = rightsOf(id, _msgSender());
         uint64 targetRights = rightsOf(id, account);
         require(callerRights >= GRANT_RIGHTS, "Not enough rights to grant rights");
@@ -63,14 +63,13 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
     function startProject(
         address owner,
         uint256 id,
-        uint128 amount,
-        bytes memory data
+        uint128 amount
     ) public {
         require(rightsOf(0, _msgSender()) >= START_PROJECT, "Not enough rights to start a project");
         require(_activeProjects[id] == false, "Project id already exists");
 
         _activeProjects[id] = true;
-        _mint(owner, id, amount, data);
+        _mint(owner, id, amount, "");
         _balances[id][owner].rights = type(uint32).max;
 
         emit StartProject(owner, id, amount);

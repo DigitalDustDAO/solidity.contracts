@@ -23,14 +23,14 @@ interface IDigitalDustDAO {
         uint128 amountMinted
     );
 
-    function rightsOf(uint256 id, address account) external view returns (uint32 rights);
+    function rightsOf(address account, uint256 id) external view returns (uint32 rights);
 
-    function penaltyOf(uint256 id, address account) external view returns (uint32 penalty);
-    function accessOf(uint256 id, address account) external view returns (uint32 access);
+    function penaltyOf(address account, uint256 id) external view returns (uint32 penalty);
+    function accessOf(address account, uint256 id) external view returns (uint32 access);
 
-    function setPenalty(uint256 id, address account, uint32 penalty) external;
+    function setPenalty(address account, uint256 id, uint32 penalty) external;
 
-    function setRights(uint256 id, address account, uint32 rights) external;
+    function setRights(address account, uint256 id, uint32 rights) external;
 
-    function startProject(address owner, uint256 id, uint128 amount, bytes memory data) external;
+    function startProject(address owner, uint256 id, uint128 amount) external;
 }
