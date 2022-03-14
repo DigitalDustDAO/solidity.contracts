@@ -44,8 +44,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private linearInterestBonus;
     uint private quadraticInterestBonus;
 
-    constructor(address manager_, address[] memory defaultOperators_) 
-        ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
+    constructor(address manager_) ERC777("Long Tail Social Token", "LTST") {
 
         manager = ISocialTokenManager(manager_);
 

@@ -9,9 +9,8 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
     address _sender;
 
     constructor(
-        address manager_,
-        address[] memory defaultOperators_
-    ) LongTailSocialToken(manager_, defaultOperators_) {}
+        address manager_
+    ) LongTailSocialToken(manager_) {}
 
     function setMsgSender(address sender_) public {
         _sender = sender_;
