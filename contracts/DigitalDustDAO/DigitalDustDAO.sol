@@ -17,6 +17,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
 
     constructor() ERC1155WithAccess("") {
         _balances[0][_msgSender()].rights = type(uint32).max;
+        _activeProjects[0] = true;
 
         emit SetRights(0, address(0), _msgSender(), type(uint32).max);
     }
@@ -44,14 +45,21 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
+    function consumeAccess(address account, uint256 id, uint32 amount) external {
+        require(rightsOf(_msgSender(), id) >= REVOKE_RIGHTS, "Caller does not have enough rights");
+        require(rightsOf(account, id) >= amount, "Not authorized");
+
+        _balances[id][account].rights -= amount;
+    }
+
     function setRights(address account, uint256 id, uint32 rights) public {
         uint64 callerRights = rightsOf(_msgSender(), id);
         uint64 targetRights = rightsOf(account, id);
-        require(callerRights >= GRANT_RIGHTS, "Not enough rights to grant rights");
+        require(callerRights >= GRANT_RIGHTS, "Caller does not have enough rights");
         require(
             callerRights >= REVOKE_RIGHTS
             || targetRights < rights,
-            "Not enough rights to revoke rights"
+           "Caller does not have enough rights"
         );
         require(callerRights >= rights, "Callers rights cannot exceed granted rights");
         require(callerRights >= targetRights, "Cannot revoke rights from higher ranked accounts");

@@ -2,53 +2,43 @@
 
 pragma solidity 0.8.11;
 
-//import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
 import "./IAuxCompatableNFT.sol";
 
-contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
-    using Strings for uint64;
-    using Strings for uint128;
+contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownable {
+    using Strings for uint8;
+    using Strings for uint104;
+    using Strings for uint112;
 
     ISocialTokenManager internal manager;
 
-    string public baseTokenURI;
-    string public auxTokenURI;
+    string[] public baseTokenURIs;
+    string[] public auxTokenURIs;
 
-    struct NFTData {
-        uint64 level;
-        uint64 group;
-        uint128 index;
-    }
-
-    struct GroupPointer {
-        uint128 size;
-        uint128 current;
-    }
-
-    uint256 private constant MAXIMUM_LEVEL = 8;
+    uint8 private constant MAXIMUM_LEVEL = 8;
     string private constant SLASH = "/";
 
     mapping(uint256 => NFTData) private dataMap;
-    mapping(uint256 => uint128) private totalOfGroup;
+    mapping(uint256 => uint256) private totalOfGroup;
     mapping(address => uint256[MAXIMUM_LEVEL]) private levelBalances;
-    mapping(uint64 => GroupPointer[MAXIMUM_LEVEL - 1]) private itemsInGroup; // 1 smaller because level zero isn't represented
+    mapping(uint120 => GroupData[MAXIMUM_LEVEL - 1]) private itemsInGroup; // 1 smaller because level zero isn't represented
+    mapping(uint120 => bool[MAXIMUM_LEVEL]) hasAuxVersion;
     mapping(address => NFTData[]) private unclaimedBounties;
-    mapping(uint64 => bool[MAXIMUM_LEVEL]) hasAuxVersion;
 
     uint64[MAXIMUM_LEVEL] private interestBonuses;
-    uint128 private elementSize;
-    uint128 private elementIndex;
+    uint104 private elementSize;
+    uint104 private elementIndex;
 
     uint256 public totalTokens;
     uint256 public maximumElementMint;
     uint256 public elementMintCost;
     uint256 public forgeCost;
     uint256 public highestDefinedGroup;
-    int256 public tokenRewardPerBounty;
 
     constructor(address manager_) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);
@@ -60,7 +50,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     }
 
     /**
-     * See {IERC165-supportsInterface}.
+     * Integration functions
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721) returns (bool) {
         return 
@@ -82,6 +72,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     /**
      * Economy adjustment functions
      */
+    function transferOwnership(address newOwner) public override(ISocialTokenNFT, Ownable) {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        _transferOwnership(newOwner);
+    }
+
     function setInterestBonus(uint256 level, uint64 newBonus) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
         require(level < MAXIMUM_LEVEL);
@@ -92,40 +87,45 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     function setForgeValues(
         uint256 newMax,
         uint256 newElementCost,
-        uint256 newForgeCost,
-        uint256 rewardPerBounty
+        uint256 newForgeCost
     ) external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         maximumElementMint = newMax;
         elementMintCost = newElementCost;
         forgeCost = newForgeCost;
-        tokenRewardPerBounty = int256(rewardPerBounty);
     }
 
-    function setURIs(string memory newURI, string memory newAuxURI) external {
+    function setURIs(uint16 index, string memory newURI, string memory newAuxURI) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        require(index <= baseTokenURIs.length);
 
-        if (bytes(newURI).length > 0) {
-            baseTokenURI = newURI;
+        if (index == baseTokenURIs.length) {
+            baseTokenURIs.push(newURI);
+            auxTokenURIs.push(newAuxURI);
         }
+        else {
+            if (bytes(newURI).length > 0) {
+                baseTokenURIs[index] = newURI;
+            }
 
-        if (bytes(newAuxURI).length > 0) {
-            auxTokenURI = newAuxURI;
+            if (bytes(newAuxURI).length > 0) {
+                auxTokenURIs[index] = newAuxURI;
+            }
         }
     }
 
     /**
      * Council functions
      */
-    function setGroupSizes(uint64 group, uint128[] memory sizes) public {
+    function setGroupSizes(uint112 group, uint104[] memory sizes, uint16[] memory uriIndexes, uint32[] memory salts) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(sizes.length < MAXIMUM_LEVEL);
         require(sizes.length > 0 && sizes[0] > 0);
         require(group <= highestDefinedGroup + 1);
         require(group != 0);
 
-        GroupPointer memory thisDatum;
+        GroupData memory thisDatum = itemsInGroup[group][0];
 
         for (uint256 i = 0;i <= sizes.length - 1;i++) {
             thisDatum = itemsInGroup[group][i];
@@ -133,6 +133,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
 
             if (thisDatum.current > thisDatum.size) {
                 thisDatum.current = 0;
+            }
+
+            if (uriIndexes.length > i) {
+                thisDatum.uriIndex = uriIndexes[i];
+            }
+
+            if (salts.length > i) {
+                thisDatum.salt = salts[i];
             }
 
             itemsInGroup[group][i] = thisDatum;
@@ -143,7 +151,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
         }
     }
 
-    function setAuxStatusForGroup(uint64 group, bool[] memory enabledForLevel) public {
+    function setAuxStatusForGroup(uint112 group, bool[] memory enabledForLevel) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(enabledForLevel.length < MAXIMUM_LEVEL);
         require(group <= highestDefinedGroup);
@@ -160,7 +168,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
         }
     }
 
-    function resizeElementLibarary(uint128 size) public {
+    function resizeElementLibarary(uint104 size) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
 
         elementSize = size;
@@ -188,28 +196,38 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
      * Public views
      */
     function interestBonus(address account) external view returns(uint64) {
-        int256 maxLevel = int256(MAXIMUM_LEVEL - 1);
+        uint256 maxLevel = MAXIMUM_LEVEL - 1;
         unchecked {
-            while(maxLevel >= 0 && levelBalances[account][uint256(maxLevel)] == 0) {
+            while(maxLevel >= 0 && levelBalances[account][maxLevel] == 0) {
+                if (maxLevel == 0) {
+                    return 0;
+                }
+
                 maxLevel--;
             }
 
-            return maxLevel < 0 ? 0 : interestBonuses[uint256(maxLevel)];
+            return interestBonuses[maxLevel];
         }
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        if (bytes(baseTokenURI).length == 0)
+        string storage baseURI;
+        if (dataMap[tokenId].level == 0) {
+            baseURI = baseTokenURIs[0];
+        } 
+        else {
+            baseURI = baseTokenURIs[itemsInGroup[dataMap[tokenId].group][dataMap[tokenId].level - 1].uriIndex];
+        }
+
+        if (bytes(baseURI).length == 0)
             return "";
 
         return string(
-            abi.encodePacked(
-                baseTokenURI, dataMap[tokenId].level.toString(),
-                SLASH, 
-                dataMap[tokenId].group.toString(),
-                SLASH,
+            abi.encodePacked(baseURI, 
+                dataMap[tokenId].level.toString(), SLASH, 
+                dataMap[tokenId].group.toString(), SLASH,
                 dataMap[tokenId].index.toString()
             )
         );
@@ -218,15 +236,31 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     function tokenAuxURI(uint256 tokenId) public view virtual returns(bool different, string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        if (bytes(auxTokenURI).length == 0 || !manager.hasAuxToken(_msgSender()) || hasAuxVersion[dataMap[tokenId].group][dataMap[tokenId].level]) {
+        if (dataMap[tokenId].level == 0 || !manager.hasAuxToken(_msgSender()) || hasAuxVersion[dataMap[tokenId].group][dataMap[tokenId].level]) {
             return (false, tokenURI(tokenId));
         }
 
-        return (true, string(abi.encodePacked(auxTokenURI, keccak256(abi.encode(dataMap[tokenId])))));
+        string storage auxURI;
+        auxURI = auxTokenURIs[itemsInGroup[dataMap[tokenId].group][dataMap[tokenId].level - 1].uriIndex];
+
+        if (bytes(auxURI).length == 0) {
+            return (false, tokenURI(tokenId));
+        }
+
+        NFTData memory datum = dataMap[tokenId];
+        datum.salt = itemsInGroup[datum.group][datum.level - 1].salt;
+
+        return (true, string(abi.encodePacked(auxURI, keccak256(abi.encode(datum)))));
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(NFTData memory info) {
         return dataMap[tokenId];
+    }
+
+    function getBaseURIsByIndex(uint16 index) public view returns(string memory baseURI, string memory auxURI) {
+        require(index < baseTokenURIs.length);
+
+        return (baseTokenURIs[index], auxTokenURIs[index]);
     }
 
     function getGroupSizes(uint64 group) public view returns(uint128[MAXIMUM_LEVEL - 1] memory) {
@@ -281,7 +315,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
 
         for (uint256 i = 0;i < quantity;i++) {
             elementIndex = (elementIndex + 1) % elementSize;
-            _safeMint(_msgSender(), NFTData (0, 0, elementIndex));
+            _safeMint(_msgSender(), NFTData (0, 0, elementIndex, 0));
         }
     }
 

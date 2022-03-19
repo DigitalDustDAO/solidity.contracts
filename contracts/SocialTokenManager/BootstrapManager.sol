@@ -93,7 +93,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Basic) {
-            require(daoContract.accessOf(account, daoId) >= 100, UNAUTHORIZED);
+            require(daoContract.accessOf(account, daoId) >= 1, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Council) {
             require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);

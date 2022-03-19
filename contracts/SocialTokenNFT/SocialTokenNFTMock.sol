@@ -24,18 +24,17 @@ contract SocialTokenNFTMock is LongTailSocialNFT {
         return type(ISocialTokenNFT).interfaceId;
     }
 
-    function getForgeValues() external view returns (uint256, uint256, uint256, int256) {
+    function getForgeValues() external view returns (uint256, uint256, uint256) {
         return (
             maximumElementMint,
             elementMintCost,
-            forgeCost,
-            tokenRewardPerBounty
+            forgeCost
         );
     }
 
-    function getBaseURI() external view returns (string memory) {
-        return baseTokenURI;
-    }
+    // function getBaseURI() external view returns (string memory) {
+    //     return baseTokenURI;
+    // }
 
     function getManager() external view returns (ISocialTokenManager) {
         return manager;
