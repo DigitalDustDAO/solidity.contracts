@@ -27,7 +27,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     mapping(uint256 => uint256) private totalOfGroup;
     mapping(address => uint256[MAXIMUM_LEVEL]) private levelBalances;
     mapping(uint120 => GroupData[MAXIMUM_LEVEL - 1]) private itemsInGroup; // 1 smaller because level zero isn't represented
-    mapping(uint120 => bool[MAXIMUM_LEVEL]) hasAuxVersion;
+    mapping(uint120 => bool[MAXIMUM_LEVEL - 1]) hasAuxVersion;
     mapping(address => NFTData[]) private unclaimedBounties;
 
     uint64[MAXIMUM_LEVEL] private interestBonuses;
@@ -151,20 +151,15 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         }
     }
 
+    // NOTE: level 0 is not represented (cannot have an aux version), so the enabledForLevel array size should be reduced by 1
     function setAuxStatusForGroup(uint112 group, bool[] memory enabledForLevel) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(enabledForLevel.length < MAXIMUM_LEVEL);
         require(group <= highestDefinedGroup);
+        require(group > 0); // elements cannot have an aux version.
 
-        if (group == 0) {
-            if (enabledForLevel.length >= 1) {
-                hasAuxVersion[0][0] = enabledForLevel[0];
-            }
-        }
-        else {
-            for (uint256 i = 0;i < enabledForLevel.length;i++) {
-                hasAuxVersion[group][i] = enabledForLevel[i];
-            }
+        for (uint256 i = 0;i < enabledForLevel.length;i++) {
+            hasAuxVersion[group][i] = enabledForLevel[i];
         }
     }
 
@@ -236,21 +231,22 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     function tokenAuxURI(uint256 tokenId) public view virtual returns(bool different, string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
-        if (dataMap[tokenId].level == 0 || !manager.hasAuxToken(_msgSender()) || hasAuxVersion[dataMap[tokenId].group][dataMap[tokenId].level]) {
+        NFTData memory tokenData = dataMap[tokenId];
+
+        if (ownerOf(tokenId) != _msgSender() || !manager.hasAuxToken(_msgSender())
+                || tokenData.level == 0 || hasAuxVersion[tokenData.group][tokenData.level - 1]) {
             return (false, tokenURI(tokenId));
         }
 
-        string storage auxURI;
-        auxURI = auxTokenURIs[itemsInGroup[dataMap[tokenId].group][dataMap[tokenId].level - 1].uriIndex];
+        GroupData storage groupData = itemsInGroup[tokenData.group][tokenData.level - 1];
+        string storage auxURI = auxTokenURIs[groupData.uriIndex];
+        tokenData.salt = groupData.salt;
 
         if (bytes(auxURI).length == 0) {
             return (false, tokenURI(tokenId));
         }
 
-        NFTData memory datum = dataMap[tokenId];
-        datum.salt = itemsInGroup[datum.group][datum.level - 1].salt;
-
-        return (true, string(abi.encodePacked(auxURI, keccak256(abi.encode(datum)))));
+        return (true, string(abi.encodePacked(auxURI, keccak256(abi.encode(tokenData)))));
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(NFTData memory info) {

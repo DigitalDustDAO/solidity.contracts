@@ -58,7 +58,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         rewardPerMiningTask = 50;
         miningGasReserve = 1500;
 
-        // mint to sender for now
+        // mint 1MM to sender for now
         // TODO: mint to LP
         _mint(_msgSender(), 1000000000000000000000000, "", "");
 
@@ -133,37 +133,35 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     function unstake(uint32 stakeNumber) public virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
-        uint256 principal = stakesByAccount[stakeAccount][stakeNumber].principal;
+        StakeData storage myStake = stakesByAccount[stakeAccount][stakeNumber];
 
         // ensure outputs within range 
-        require(principal > 0);
+        require(myStake.principal > 0);
         
         // calculate the reward
-        (bool positive, uint256 interest) = calculateInterest(
-            stakesByAccount[stakeAccount][stakeNumber].start,
-            stakesByAccount[stakeAccount][stakeNumber].end,
-            stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index].interestRate,
-            stakesByAccount[stakeAccount][stakeNumber].principal
+        int256 interest = calculateInterest(myStake.start, myStake.end, getCurrentDay(),
+            stakesByEndDay[myStake.end][myStake.index].interestRate, myStake.principal
         );
 
         // delete the stake data
-        delete(stakesByEndDay[stakesByAccount[stakeAccount][stakeNumber].end][stakesByAccount[stakeAccount][stakeNumber].index]);
+        delete(stakesByEndDay[myStake.end][myStake.index]);
         delete(stakesByAccount[stakeAccount][stakeNumber]);
 
         // distribute the funds
-        if (positive) {
-            _send(address(this), stakeAccount, principal, "", "", false);
-            _mint(stakeAccount, interest, "", "", false);
+        if (interest >= 0) {
+            _send(address(this), stakeAccount, myStake.principal, "", "", false);
+            _mint(stakeAccount, uint256(interest), "", "", false);
         }
-        else {
-            _send(address(this), stakeAccount, principal - interest, "", "", false);
-            _burn(address(this), interest, "", "");
+        else if (int256(myStake.principal) + interest > 0) {
+            _send(address(this), stakeAccount, uint256(int256(myStake.principal) + interest), "", "", false);
+            _burn(address(this), uint256(-interest), "", "");
+        }
+        else { // exceedingly unlikely... but not impossible
+            _burn(address(this), myStake.principal, "", "");
         }
 
         // emit events
-        unchecked { // overflow is very remotely possible here, but should not cause the function to revert since this is not essential functionality
-            emit RedeemedStake(stakeAccount, principal, positive ? int256(interest) : (int256(interest) * -1));
-        } 
+        emit RedeemedStake(stakeAccount, myStake.principal, interest);
     }
 
     function mine() public virtual {
@@ -267,29 +265,17 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return votingPower;
     }
 
-    function calculateInterest(uint256 start, uint256 end, uint256 interestRate, uint256 principal) public view returns(bool, uint256) {
+    // This function gets the interest that will be earned if you withdraw a stake on a particular day.
+    function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) public pure returns(int256) {
         uint256 halfStakeLength = (end - start) / 2;
-        uint256 timeStaked = getCurrentDay() - start;
-        uint256 payoff = _fullInterest(end - start, interestRate, principal);
+        uint256 timeStaked = dayOfWithdrawal - start;
+
         if (timeStaked < halfStakeLength) {
-            return (false, (payoff * timeStaked) / halfStakeLength);
+            return int256((_fullInterest(end - start, interestRate, principal) * timeStaked) / halfStakeLength) * -1;
         }
         else {
-            return (true, (payoff * (timeStaked - halfStakeLength)) / halfStakeLength);
+            return int256((_fullInterest(end - start, interestRate, principal) * (timeStaked - halfStakeLength)) / halfStakeLength);
         }
-    }
-
-    function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){
-        if (currentDay - start <= (end - start) / 2) {
-            return (currentDay - start) * 2;
-        }
-        else {
-            return ((end - start) - (currentDay - start)) * 2;
-        }
-    }
-
-    function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {
-        return (interestRate * duration * principal) / type(uint64).max;
     }
 
     function calculateInterestRate(address account, uint256 numberOfDays) public view returns(uint64) {
@@ -306,11 +292,18 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
     }
 
-    // function _beforeTokenTransfer(address operator, address from, address to, uint256 amount) internal view override {
-    //     if (to != address(0) && to != address(this)) {
-    //         manager.authorize(to, ISocialTokenManager.Sensitivity.Basic);
-    //     }
-    // }
+    function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){
+        if (currentDay - start <= (end - start) / 2) {
+            return (currentDay - start) * 2;
+        }
+        else {
+            return ((end - start) - (currentDay - start)) * 2;
+        }
+    }
+
+    function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {
+        return (interestRate * duration * principal) / type(uint64).max;
+    }
 
     function send(address recipient, uint256 amount, bytes memory data) public virtual override {
         manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
