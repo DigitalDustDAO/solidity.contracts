@@ -315,20 +315,18 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         }
     }
 
-    function forge(uint256 templateId, uint256 materialId1, uint256 materialId2) public {
+    function forge(uint256 templateId, uint256 materialId) public {
 
         NFTData memory forgedItem = dataMap[templateId];
 
         // check constraints
         // ownerOf takes care of checking that the ID has been minted
         require(ownerOf(templateId) == _msgSender());
-        require(ownerOf(materialId1) == _msgSender());
-        require(ownerOf(materialId2) == _msgSender());
+        require(ownerOf(materialId) == _msgSender());
         require(highestDefinedGroup > 0);
         require(forgedItem.level < MAXIMUM_LEVEL - 1);
         require(forgedItem.group == 0 || itemsInGroup[forgedItem.group][forgedItem.level].size > 0);
-        require(dataMap[materialId1].level == forgedItem.level);
-        require(dataMap[materialId2].level == forgedItem.level);
+        require(dataMap[materialId].level == forgedItem.level);
 
         // attempt to deduct fuel cost
         if (forgeCost > 0) {
@@ -337,8 +335,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
 
         // delete the old NFTs
         _burn(templateId);
-        _burn(materialId1);
-        _burn(materialId2);
+        _burn(materialId);
         
         // mint the new NFT
         forgedItem = _upgradeNFT(forgedItem);
