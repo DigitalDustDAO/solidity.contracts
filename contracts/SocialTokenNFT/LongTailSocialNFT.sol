@@ -22,6 +22,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
 
     uint8 private constant MAXIMUM_LEVEL = 8;
     string private constant SLASH = "/";
+    bytes32 private constant AUX_URI_UNLOCK_R = "\x19Ethereum Signed Message:\n37    ";
+    bytes32 private constant AUX_URI_UNLOCK_S = "Unlock rule 34 functionality    ";
+    uint8 private constant AUX_URI_UNLOCK_V = 0;
 
     mapping(uint256 => NFTData) private dataMap;
     mapping(uint256 => uint256) private totalOfGroup;
@@ -228,12 +231,13 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         );
     }
 
-    function tokenAuxURI(uint256 tokenId) public view virtual returns(bool different, string memory uri) {
+    function tokenAuxURI(uint256 tokenId, bytes32 signedMessage) public view virtual returns(bool different, string memory uri) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
 
         NFTData memory tokenData = dataMap[tokenId];
+        address signer = ecrecover(signedMessage, AUX_URI_UNLOCK_V, AUX_URI_UNLOCK_R, AUX_URI_UNLOCK_S);
 
-        if (ownerOf(tokenId) != _msgSender() || !manager.hasAuxToken(_msgSender())
+        if (ownerOf(tokenId) != signer || !manager.hasAuxToken(signer)
                 || tokenData.level == 0 || hasAuxVersion[tokenData.group][tokenData.level - 1]) {
             return (false, tokenURI(tokenId));
         }
@@ -247,6 +251,19 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         }
 
         return (true, string(abi.encodePacked(auxURI, keccak256(abi.encode(tokenData)))));
+    }
+
+    function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+
+        NFTData memory tokenData = dataMap[tokenId];
+
+        if (tokenData.level == 0) {
+            return false;
+        }
+        else {
+            return hasAuxVersion[tokenData.group][tokenData.level - 1];
+        }
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(NFTData memory info) {
@@ -341,6 +358,37 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         forgedItem = _upgradeNFT(forgedItem);
         itemsInGroup[forgedItem.group][forgedItem.level].current = forgedItem.index;
         _safeMint(_msgSender(), _upgradeNFT(forgedItem));
+    }
+
+    function _recoverSigner(bytes32 _signedMessage, bytes memory _signature) private pure returns (address)
+    {
+        (bytes32 r, bytes32 s, uint8 v) = _splitSignature(_signature);
+
+        return ecrecover(_signedMessage, v, r, s);
+    }
+
+    function _splitSignature(bytes memory sig) private pure returns (bytes32 r, bytes32 s, uint8 v) {
+        require(sig.length == 65, "invalid signature length");
+
+        assembly {
+            /*
+            First 32 bytes stores the length of the signature
+
+            add(sig, 32) = pointer of sig + 32
+            effectively, skips first 32 bytes of signature
+
+            mload(p) loads next 32 bytes starting at the memory address p into memory
+            */
+
+            // first 32 bytes, after the length prefix
+            r := mload(add(sig, 32))
+            // second 32 bytes
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes)
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        // implicitly return (r, s, v)
     }
 
     function _upgradeNFT(NFTData memory template) private view returns(NFTData memory newNFT) {
