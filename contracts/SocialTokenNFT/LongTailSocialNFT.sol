@@ -22,9 +22,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
 
     uint8 private constant MAXIMUM_LEVEL = 8;
     string private constant SLASH = "/";
-    bytes32 private constant AUX_URI_UNLOCK_R = "\x19Ethereum Signed Message:\n37    ";
-    bytes32 private constant AUX_URI_UNLOCK_S = "Unlock rule 34 functionality    ";
-    uint8 private constant AUX_URI_UNLOCK_V = 0;
+    bytes32 private constant AUX_URI_UNLOCK_R = "0x556e6c6f636b2072756c6520333420";
+    bytes32 private constant AUX_URI_UNLOCK_S = "66756e6374696f6e616c697479";
+    uint8   private constant AUX_URI_UNLOCK_V = 0;
 
     mapping(uint256 => NFTData) private dataMap;
     mapping(uint256 => uint256) private totalOfGroup;

@@ -69,12 +69,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function hasAuxToken(address account) public view returns(bool) {
-        if (address(auxTokenContract) == address(0)) {
-            return false;
-        }
-        else {
-            return auxTokenContract.balanceOf(account) > 0;
-        }
+        return true;
     }
 
     function getDaoContract() public view returns(IDigitalDustDAO) {
