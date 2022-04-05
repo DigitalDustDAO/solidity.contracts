@@ -4,6 +4,9 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("hardhat-contract-sizer");
 require("hardhat-erc1820");
+require('@typechain/hardhat');
+require('@nomiclabs/hardhat-ethers');
+require('@nomiclabs/hardhat-waffle');
 
 task("accounts", "Prints the list of accounts", async () => {
     const accounts = await ethers.getSigners();
