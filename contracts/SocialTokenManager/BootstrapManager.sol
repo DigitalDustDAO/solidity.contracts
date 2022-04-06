@@ -68,7 +68,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         auxTokenContract = IERC20(contractAddress);
     }
 
-    function hasAuxToken(address account) public view returns(bool) {
+    function hasAuxToken(address) public pure returns(bool) {
         return true;
     }
 

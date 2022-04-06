@@ -26,13 +26,26 @@ interface ISocialTokenNFT {
         uint128 NFTsRewarded
     );
 
+    event GroupSizeChanged (
+        uint8 indexed level,
+        uint112 indexed group,
+        uint104 oldSize,
+        uint104 newSize
+    );
+
+    event ForgeCostSet (
+        uint8 maximumMint,
+        uint256 costForElementForge,
+        uint256 costForUpgradeForge
+    );
+
     // Manager only function
     function setManager(address newManager) external;
 
     // Economy adjustment functions
     function transferOwnership(address newOwner) external;
     function setInterestBonus(uint256 level, uint64 newBonus) external;
-    function setForgeValues(uint256 newMax, uint256 newElementCost, uint256 newForgeCost) external;
+    function setForgeValues(uint8 newMax, uint256 newElementCost, uint256 newForgeCost) external;
     function setURIs(uint16 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions
