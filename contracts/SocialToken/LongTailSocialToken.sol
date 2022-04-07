@@ -2,12 +2,13 @@
 
 pragma solidity 0.8.11;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../ERC777.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "./ISocialToken.sol";
 
-contract LongTailSocialToken is ISocialToken, ERC777 {
+contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
 
     // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
@@ -28,12 +29,13 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     uint private constant MININUM_STAKE_AMOUNT = 100000000000;
     uint private immutable START_TIME;
 
+    bytes private constant STAKE_RETURN = "Automatic return of stake";
+    bytes private constant STAKE_REDEEM = "Manual redeem of stake";
 
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
-    //ISocialTokenManager private manager;
-    ISocialTokenManager internal manager; // this cannot remain internal
+    ISocialTokenManager private manager;
 
     uint internal lastInterestAdjustment;
     uint private lastCompletedDistribution;
@@ -66,8 +68,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
-        require(_msgSender() == address(manager));
-        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId));
+        require(_msgSender() == address(manager), "Not authorized");
+        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), "Interface unsupported");
 
         manager = ISocialTokenManager(newManager);
                 
@@ -85,7 +87,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         miningGasReserve = miningReserve;
     }
 
-    function stake(uint256 amount, uint16 numberOfDays) public returns(uint32) {
+    function stake(uint256 amount, uint16 numberOfDays) public nonReentrant() returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 today = getCurrentDay();
@@ -94,12 +96,12 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
         // ensure inputs are not out of range 
-        require(amount >= MININUM_STAKE_AMOUNT);
-        require(balanceOf(stakeAccount) >= amount);
-        require(numberOfDays <= MAXIMUM_STAKE_DAYS);
-        require(numberOfDays >= MININUM_STAKE_DAYS);
-        require(accountIndex <= type(uint32).max);
-        require(endDayIndex <= type(uint128).max);
+        require(amount >= MININUM_STAKE_AMOUNT, "Stake too small");
+        require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
+        require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake too long");
+        require(numberOfDays >= MININUM_STAKE_DAYS, "Stake too short");
+        require(accountIndex <= type(uint32).max, "Stake limit reached");
+        require(endDayIndex <= type(uint128).max, "Stake limit reached");
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
@@ -115,8 +117,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
             amount
         ));
 
-        // send 
-        _send(stakeAccount, address(this), amount, "", "", false);
+        // send the stake to this contract
+        _send(stakeAccount, address(this), amount, "", "Staked", false);
 
         emit Staked(
             stakeAccount,
@@ -130,7 +132,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         return uint32(accountIndex);
     }
 
-    function unstake(uint32 stakeNumber) public virtual {
+    function unstake(uint32 stakeNumber) public nonReentrant() virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
         StakeData storage myStake = stakesByAccount[stakeAccount][stakeNumber];
@@ -149,15 +151,15 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
         // distribute the funds
         if (interest >= 0) {
-            _send(address(this), stakeAccount, myStake.principal, "", "", false);
-            _mint(stakeAccount, uint256(interest), "", "", false);
+            _send(address(this), stakeAccount, myStake.principal, "", STAKE_REDEEM, false);
+            _mint(stakeAccount, uint256(interest), "", STAKE_REDEEM, false);
         }
         else if (int256(myStake.principal) + interest > 0) {
-            _send(address(this), stakeAccount, uint256(int256(myStake.principal) + interest), "", "", false);
-            _burn(address(this), uint256(-interest), "", "");
+            _send(address(this), stakeAccount, uint256(int256(myStake.principal) + interest), "", STAKE_REDEEM, false);
+            _burn(address(this), uint256(-interest), "", STAKE_REDEEM);
         }
         else { // exceedingly unlikely... but not impossible
-            _burn(address(this), myStake.principal, "", "");
+            _burn(address(this), myStake.principal, "", STAKE_REDEEM);
         }
 
         // emit events
@@ -189,8 +191,8 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
 
                     // done this way to prevent the possibility of rollbacks.
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
-                    _move(address(this), address(this), currentStake.owner, accountStake.principal, "", "");
-                    _mint(currentStake.owner, interest, "", "", true);
+                    _move(address(this), address(this), currentStake.owner, accountStake.principal, "", STAKE_RETURN);
+                    _mint(currentStake.owner, interest, "", STAKE_RETURN, true);
 
                     tasksCompleted++;
                 }
@@ -198,20 +200,19 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
         }
 
         if (tasksCompleted > 0) {
-            // TODO: send pool tokens if available
-            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "", true);
+            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "Mining reward", true);
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
     }
 
-    function award(address account, int256 amount) virtual external {
+    function award(address account, int256 amount, bytes memory explanation) virtual external nonReentrant() {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
-            _burn(account, uint256(-amount), "", "");
+            _burn(account, uint256(-amount), "", explanation);
         }
         else if (amount > 0) {
-            _mint(account, uint256(amount), "", "", false);
+            _mint(account, uint256(amount), "", explanation, false);
         }
     }
 
@@ -251,7 +252,7 @@ contract LongTailSocialToken is ISocialToken, ERC777 {
     // Need to test how much gas this function uses.
     function getVotingPower(address account) external view returns(uint256) {
         uint256 votingPower = 0;
-        StakeData memory thisStake;
+        StakeData storage thisStake;
         uint256 finalDepth = stakesByAccount[account].length <= 256 ? 0 : stakesByAccount[account].length - 256;
 
         for(uint256 i = stakesByAccount[account].length - 1; i > finalDepth; i--) {

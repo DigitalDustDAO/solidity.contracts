@@ -24,13 +24,13 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
         return 7;
     }
 
-    function getManager() external view returns (ISocialTokenManager) {
-        return manager;
-    }
+    // function getManager() external view returns (ISocialTokenManager) {
+    //     return manager;
+    // }
 
-    function getManagerAddress() external view returns (address) {
-        return address(manager);
-    }
+    // function getManagerAddress() external view returns (address) {
+    //     return address(manager);
+    // }
 
     function getSender() external view returns (address) {
         return _msgSender();
