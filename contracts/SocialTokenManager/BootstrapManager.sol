@@ -20,6 +20,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     ISocialTokenLiquidityPool[] private liquidityPools;
 
     uint256 public immutable daoId;
+    uint32 private constant CONTRACT_RIGHTS = 488;
 
     string constant private UNAUTHORIZED = "Not authorized";
     string constant private INVALID_INTERFACE = "Invalid interface";

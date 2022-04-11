@@ -14,9 +14,10 @@ import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
-contract UniswapLiquidityPool is ISocialTokenLiquidityPool, ERC165 {
+contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
-    //IUniswapV2Factory immutable private uniV2FactoryAddr;
+    string private constant UNAUTHORIZED = "Not authorized";
+    
     IUniswapV2Router02 immutable public uniV2RouterAddress;
     IUniswapV2Pair immutable public pairAddress;
 
@@ -29,7 +30,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, ERC165 {
         uniV2RouterAddress = IUniswapV2Router02(routerAddress);
 
          // Create a uniswap pair for this new token
-        uniswapV2Pair = IUniswapV2Pair(IUniswapV2Factory(uniV2RouterAddress.factory()).createPair(address(this), uniV2RouterAddress.WETH()));
+        pairAddress = IUniswapV2Pair(IUniswapV2Factory(uniV2RouterAddress.factory()).createPair(address(manager.getTokenContract()), uniV2RouterAddress.WETH()));
     }
 
     function setManager(address newManager) external {
@@ -39,5 +40,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, ERC165 {
         manager = ISocialTokenManager(newManager);
     }
 
-    
+    function mintIntoPair(uint256 tokenAmount, uint256 ethAmount) public {
+
+    }
 }

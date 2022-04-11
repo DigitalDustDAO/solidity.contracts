@@ -9,14 +9,15 @@ contract SocialTokenManagerMock is SocialTokenManager {
         address dao_,
         uint256 daoId_,
         address tokenAddr_,
+        address auxAddr_,
         address nftAddr_
-    ) SocialTokenManager(dao_, daoId_, tokenAddr_, nftAddr_) {}
+    ) SocialTokenManager(dao_, daoId_, tokenAddr_, auxAddr_, nftAddr_) {}
 
     function callTokenSetManager(address newManager, bool startInterestAdjustment) public {
-        getTokenContract().setManager(newManager, startInterestAdjustment);
+        this.getTokenContract().setManager(newManager, startInterestAdjustment);
     }
 
     function callNftSetManager(address newManager) public {
-        getNftContract().setManager(newManager);
+        this.getNftContract().setManager(newManager);
     }
 }

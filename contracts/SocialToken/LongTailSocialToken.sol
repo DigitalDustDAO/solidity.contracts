@@ -88,7 +88,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         miningGasReserve = miningReserve;
     }
 
-    function stake(uint256 amount, uint16 numberOfDays) public nonReentrant() returns(uint32) {
+    function stake(uint256 amount, uint16 numberOfDays) public nonReentrant returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 today = getCurrentDay();
@@ -133,7 +133,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         return uint32(accountIndex);
     }
 
-    function unstake(uint32 stakeNumber) public nonReentrant() virtual {
+    function unstake(uint32 stakeNumber) public nonReentrant virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
         StakeData storage myStake = stakesByAccount[stakeAccount][stakeNumber];
@@ -206,7 +206,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         }
     }
 
-    function award(address account, int256 amount, bytes memory explanation) virtual external nonReentrant() {
+    function award(address account, int256 amount, bytes memory explanation) virtual external nonReentrant {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
