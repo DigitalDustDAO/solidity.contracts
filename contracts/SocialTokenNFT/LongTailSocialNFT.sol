@@ -15,7 +15,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     using Strings for uint104;
     using Strings for uint112;
 
-    ISocialTokenManager internal manager;
+    ISocialTokenManager public manager;
 
     string[] public baseTokenURIs;
     string[] public auxTokenURIs;

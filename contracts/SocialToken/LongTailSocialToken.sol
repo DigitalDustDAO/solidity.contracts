@@ -10,7 +10,6 @@ import "./ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
 
-    // framerate, interest, adding and redeeming stakes, mining
     struct StakeDataPointer {
         address owner;
         uint64 interestRate;
@@ -25,17 +24,19 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     }
 
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
-    uint private constant MININUM_STAKE_DAYS = 30;
-    uint private constant MININUM_STAKE_AMOUNT = 100000000000;
+    uint private constant MININUM_STAKE_DAYS = 28;
+    uint private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
     uint private immutable START_TIME;
 
     bytes private constant STAKE_RETURN = "Automatic return of stake";
     bytes private constant STAKE_REDEEM = "Manual redeem of stake";
+    string private constant STAKE_LIMIT = "Stake limit reached";
+    string private constant UNAUTHORIZED = "Not authorized";
 
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
-    ISocialTokenManager private manager;
+    ISocialTokenManager public manager;
 
     uint internal lastInterestAdjustment;
     uint private lastCompletedDistribution;
@@ -68,7 +69,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
-        require(_msgSender() == address(manager), "Not authorized");
+        require(_msgSender() == address(manager), UNAUTHORIZED);
         require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), "Interface unsupported");
 
         manager = ISocialTokenManager(newManager);
@@ -100,8 +101,8 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
         require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake too long");
         require(numberOfDays >= MININUM_STAKE_DAYS, "Stake too short");
-        require(accountIndex <= type(uint32).max, "Stake limit reached");
-        require(endDayIndex <= type(uint128).max, "Stake limit reached");
+        require(accountIndex <= type(uint32).max, STAKE_LIMIT);
+        require(endDayIndex <= type(uint128).max, STAKE_LIMIT);
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
@@ -167,7 +168,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     }
 
     function mine() public virtual {
-        require(balanceOf(_msgSender()) > 0);
+        require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
 
         uint256 tasksCompleted = 0;
         uint256 interest;
@@ -307,12 +308,12 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     }
 
     function send(address recipient, uint256 amount, bytes memory data) public virtual override {
-        manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
+        manager.authorizeTx(_msgSender(), recipient);
         super.send(recipient, amount, data);
     }
 
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        manager.authorize(recipient, ISocialTokenManager.Sensitivity.Basic);
+        manager.authorizeTx(_msgSender(), recipient);
         return super.transfer(recipient, amount);
     }
 }

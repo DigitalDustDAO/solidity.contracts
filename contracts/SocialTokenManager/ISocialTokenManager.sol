@@ -10,7 +10,6 @@ import "../SocialTokenNFT/ISocialTokenNFT.sol";
 interface ISocialTokenManager is IERC165 {
 
     enum Sensitivity {
-        Basic,
         Council,
         Maintainance,
         Elder,
@@ -23,6 +22,11 @@ interface ISocialTokenManager is IERC165 {
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
     function hasAuxToken(address account) external view returns(bool);
+
+    
+
+    //permission and control
     function authorize(address source, Sensitivity level) external view;
+    function authorizeTx(address source, address destination) external view;
     function adjustInterest() external view;
 }

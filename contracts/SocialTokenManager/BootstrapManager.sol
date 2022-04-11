@@ -6,20 +6,25 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
+import "../LiquidityPool/ISocialTokenLiquidityPool.sol";
 import "../SocialToken/ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
 contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
-    IDigitalDustDAO private daoContract;
+    IDigitalDustDAO private immutable daoContract;
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
     IERC20 private auxTokenContract;
 
-    uint256 daoId;
+    ISocialTokenLiquidityPool[] private liquidityPools;
+
+    uint256 public immutable daoId;
 
     string constant private UNAUTHORIZED = "Not authorized";
     string constant private INVALID_INTERFACE = "Invalid interface";
+    string constant private NOT_INITIALIZED = "Contract not enabled";
+
     bool private initialized;
 
     constructor(address dao_, uint256 daoId_) {
@@ -52,11 +57,14 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     // Time to pass to a new manager
     function upgrade(address newManager, address payable sendTo) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
-        require(initialized);
+        require(initialized, NOT_INITIALIZED);
         require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
         tokenContract.setManager(newManager, false);
         nftContract.setManager(newManager);
+        for (uint256 i = 0;i < liquidityPools.length;i++) {
+            liquidityPools[i].setManager(newManager);
+        }
 
         initialized = false;
         selfdestruct(sendTo);
@@ -77,20 +85,17 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function getTokenContract() public view returns(ISocialToken) {
-        require(initialized);
+        require(initialized, NOT_INITIALIZED);
         return tokenContract;
     }
 
     function getNftContract() public view returns(ISocialTokenNFT) {
-        require(initialized);
+        require(initialized, NOT_INITIALIZED);
         return nftContract;
     }
 
     function authorize(address account, Sensitivity level) external view {
-        if (level == Sensitivity.Basic) {
-            require(daoContract.accessOf(account, daoId) >= 1, UNAUTHORIZED);
-        }
-        else if (level == Sensitivity.Council) {
+        if (level == Sensitivity.Council) {
             require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
@@ -100,7 +105,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
             require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.AwardableContract) {
-            require(account == address(nftContract), UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) == CONTRACT_RIGHTS, UNAUTHORIZED);
         }
         else if (level == Sensitivity.TokenContract) {
             require(account == address(tokenContract), UNAUTHORIZED);
@@ -108,6 +113,10 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         else { // invalid input, deny
             revert(UNAUTHORIZED);
         }
+    }
+
+    function authorizeTx(address source, address destination) external view {
+        require(daoContract.accessOf(source, daoId) >= 1 && daoContract.accessOf(destination, daoId) >= 1, UNAUTHORIZED);
     }
 
     function adjustInterest() external view {
