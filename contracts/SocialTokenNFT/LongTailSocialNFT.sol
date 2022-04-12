@@ -304,21 +304,22 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     function collectBounties(uint256 number) public {
         
         NFTData memory item;
-        while (unclaimedBounties[_msgSender()].length > 0 && number > 0) {
-            item = unclaimedBounties[_msgSender()][unclaimedBounties[_msgSender()].length - 1];
+        NFTData[] storage bountyList = unclaimedBounties[_msgSender()];
+        while (bountyList.length > 0 && number > 0) {
+            item = bountyList[bountyList.length - 1];
 
             if (item.level == 0 && (item.index == 0 || item.index > elementSize)) {
-                item.index = (elementIndex + 1) % elementSize;
-                elementIndex = item.index;
+                item.index = elementIndex;
+                elementIndex = (elementIndex + 1) % elementSize;
             }
             else if (item.index == 0 || item.index > itemsInGroup[item.group][item.level].size) {
-                item.index = (itemsInGroup[item.group][item.level].current + 1) % itemsInGroup[item.group][item.level].size;
-                itemsInGroup[item.group][item.level].current = item.index;
+                GroupData storage group = itemsInGroup[item.group][item.level];
+                item.index = group.current;
+                group.current = (group.current + 1) % group.size;
             }
 
-            unclaimedBounties[_msgSender()].pop();
+            bountyList.pop();
             _safeMint(_msgSender(), item);
-
             number--;
         }
     }
@@ -335,8 +336,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
         manager.getTokenContract().award(_msgSender(), int256(quantity * elementMintCost) * -1, "forging cost");
 
         for (uint256 i = 0;i < quantity;i++) {
-            elementIndex = (elementIndex + 1) % elementSize;
             _safeMint(_msgSender(), NFTData (0, 0, elementIndex, 0));
+            elementIndex = (elementIndex + 1) % elementSize;
         }
     }
 

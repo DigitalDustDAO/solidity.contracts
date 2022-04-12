@@ -20,8 +20,12 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     
     IUniswapV2Router02 immutable public uniV2RouterAddress;
     IUniswapV2Pair immutable public pairAddress;
-
     ISocialTokenManager public manager;
+
+    uint256 LPToDistribute;
+    uint256 private immutable START_TIME;
+    uint64 private dailyInterestRate;
+    bool private funded;
 
     // the normal factory address is 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
     // the normal router address is  0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
@@ -31,6 +35,8 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
          // Create a uniswap pair for this new token
         pairAddress = IUniswapV2Pair(IUniswapV2Factory(uniV2RouterAddress.factory()).createPair(address(manager.getTokenContract()), uniV2RouterAddress.WETH()));
+
+        START_TIME = block.timestamp - (block.timestamp % 1 days);
     }
 
     function setManager(address newManager) external {
@@ -40,7 +46,33 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         manager = ISocialTokenManager(newManager);
     }
 
-    function mintIntoPair(uint256 tokenAmount, uint256 ethAmount) public {
+    function fundPool(uint256 tokenAmount, uint256 ethAmount) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
+        require(!funded);
 
+        (uint256 amountToken, uint256 amountETH, uint256 liquidity) = 
+            uniV2RouterAddress.addLiquidityETH(address(manager.getTokenContract()), tokenAmount, tokenAmount, ethAmount, address(this), block.timestamp);
+        
+        LPToDistribute = liquidity;
+    }
+
+    function refundAnyEth(address payable recipient) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
+
+        recipient.transfer(address(this).balance);
+    }
+
+    function setInterestRate(uint64 newDailyInterestRate) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
+
+        dailyInterestRate = newDailyInterestRate;
+    }
+
+    function getCurrentDay() public virtual view returns(uint256) {
+        return (block.timestamp - START_TIME) / 1 days;
+    }
+
+    function calculateInterest(uint256 principal, uint64 rate, uint64 numberOfDays) public pure returns(uint256) {
+        return (principal * (rate ** numberOfDays)) / type(uint64).max;
     }
 }

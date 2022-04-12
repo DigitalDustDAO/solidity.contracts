@@ -62,15 +62,15 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         }
     }
 
-    function getDaoContract() external view returns(IDigitalDustDAO) {
+    function getDaoContract() public view returns(IDigitalDustDAO) {
         return daoContract;
     }
 
-    function getTokenContract() external view returns(ISocialToken) {
+    function getTokenContract() public view returns(ISocialToken) {
         return tokenContract;
     }
 
-    function getNftContract() external view returns(ISocialTokenNFT) {
+    function getNftContract() public view returns(ISocialTokenNFT) {
         return nftContract;
     }
 
