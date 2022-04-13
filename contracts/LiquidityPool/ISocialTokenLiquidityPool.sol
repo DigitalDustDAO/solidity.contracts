@@ -9,11 +9,16 @@ import "../SocialTokenNFT/ISocialTokenNFT.sol";
 
 interface ISocialTokenLiquidityPool is IERC165 {
 
-    struct LiquidityCollection {
-        address account;
-        uint32 day;
-        uint64 amount;
+    struct Stake {
+        uint32 startDay;
+        uint64 interestRate;
+        uint160 principal;
     }
+
+    // event RewardIssued (
+    //     address indexed account,
+
+    // );
 
     function setManager(address newManager) external;
 }
