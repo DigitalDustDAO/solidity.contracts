@@ -15,10 +15,9 @@ interface ISocialTokenLiquidityPool is IERC165 {
         uint160 principal;
     }
 
-    // event RewardIssued (
-    //     address indexed account,
-
-    // );
 
     function setManager(address newManager) external;
+    function fundPool(uint256 token1Amount, uint256 token2Amount) external;
+    function setInterestRate(uint64 newDailyInterestRate) external;
+    function getStakeData(address account) external view returns(uint160 principal, uint256 uncollectedRewards);
 }

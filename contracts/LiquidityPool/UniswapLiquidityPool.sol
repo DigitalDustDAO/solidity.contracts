@@ -48,6 +48,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         manager = ISocialTokenManager(newManager);
     }
 
+    // Can only be called once
     function fundPool(uint256 tokenAmount, uint256 ethAmount) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
         require(!funded);
@@ -56,28 +57,38 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
             uniV2RouterAddress.addLiquidityETH(address(manager.getTokenContract()), tokenAmount, tokenAmount, ethAmount, address(this), block.timestamp);
         
         LPToDistribute = liquidity;
+
+        funded = true;
     }
 
+    // Uasually will do nothing.
     function refundAnyEth(address payable recipient) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
 
         recipient.transfer(address(this).balance);
     }
 
+    // Council function.
     function setInterestRate(uint64 newDailyInterestRate) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
 
         dailyInterestRate = newDailyInterestRate;
     }
 
+    // Getters.
     function getCurrentDay() public virtual view returns(uint32) {
         return uint32((block.timestamp - START_TIME) / 1 days);
     }
 
-    function _calculateInterest(uint256 principal, uint64 rate, uint64 numberOfDays) private pure returns(uint256) {
-        return (principal * rate * numberOfDays) / type(uint64).max;
+    function getStakeData(address account) public view returns(uint160 principal, uint256 uncollectedRewards) {
+        Stake storage userStake = stakes[account];
+
+        return (userStake.principal, _calculateInterest(userStake.principal, 
+            userStake.interestRate < dailyInterestRate ? userStake.interestRate : dailyInterestRate, 
+            getCurrentDay() - userStake.startDay));
     }
 
+    // User functions.
     function stake(uint256 amount) public {
         Stake storage userStake = stakes[_msgSender()];
 
@@ -85,36 +96,52 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         require(pairAddress.balanceOf(_msgSender()) >= amount, "Tried to stake more tokens than you have");
         require(amount + userStake.principal <= type(uint160).max);
 
-        if (userStake.principal > 0) {
-            _awardInterest();
-        }
+        Stake memory origionalStake = userStake;
 
         userStake.interestRate = dailyInterestRate;
         userStake.startDay = getCurrentDay();
         userStake.principal += uint160(amount);
+        
+        pairAddress.transferFrom(_msgSender(), this, amount);
+        _awardInterest(origionalStake);
     }
 
-    function _awardInterest() private {
-        Stake storage userStake = stakes[_msgSender()];
+    function collectInterest() public {
+        Stake memory userStake = stakes[_msgSender()];
 
-        uint256 interest = _calculateInterest(userStake.principal, 
-            userStake.interestRate < dailyInterestRate ? userStake.interestRate : dailyInterestRate, 
-            getCurrentDay() - userStake.startDay);
+        stakes[_msgSender()].interestRate = dailyInterestRate;
+        stakes[_msgSender()].startDay = getCurrentDay();
 
-        if (LPToDistribute > 0) {
-            pairAddress.transfer(_msgSender(), interest < LPToDistribute ? interest : LPToDistribute);
-            LPToDistribute = interest < LPToDistribute ? LPToDistribute - interest : 0;
-        }
-        else {
-            manager.getTokenContract().award(_msgSender(), int256(interest), "LP staking reward");
-        }
+        _awardInterest(userStake);
     }
 
-    function getUnredeemedRewards(address account) public view returns(uint160 principal, uint256 rewards) {
-        Stake storage userStake = stakes[account];
+    function unstake() public {
+        Stake memory userStake = stakes[_msgSender()];
 
-        return (userStake.principal, _calculateInterest(userStake.principal, 
-            userStake.interestRate < dailyInterestRate ? userStake.interestRate : dailyInterestRate, 
-            getCurrentDay() - userStake.startDay));
+        delete(stakes[_msgSender()]);
+
+        pairAddress.transfer(_msgSender(), userStake.principal);
+        _awardInterest(userStake);
+    }
+
+    // Private functions.
+    function _calculateInterest(uint256 principal, uint64 rate, uint64 numberOfDays) private pure returns(uint256) {
+        return (principal * rate * numberOfDays) / type(uint64).max;
+    }
+
+    function _awardInterest(Stake memory userStake) private {
+        if (userStake.principal > 0 && userStake.startDay < getCurrentDay()) {
+            uint256 interest = _calculateInterest(userStake.principal, 
+                userStake.interestRate < dailyInterestRate ? userStake.interestRate : dailyInterestRate, 
+                getCurrentDay() - userStake.startDay);
+
+            if (LPToDistribute > 0) {
+                pairAddress.transfer(_msgSender(), interest < LPToDistribute ? interest : LPToDistribute);
+                LPToDistribute = interest < LPToDistribute ? LPToDistribute - interest : 0;
+            }
+            else {
+                manager.getTokenContract().award(_msgSender(), int256(interest), "Uniswap staking reward");
+            }
+        }
     }
 }
