@@ -102,7 +102,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         userStake.startDay = getCurrentDay();
         userStake.principal += uint160(amount);
         
-        pairAddress.transferFrom(_msgSender(), this, amount);
+        pairAddress.transferFrom(_msgSender(), address(this), amount);
         _awardInterest(origionalStake);
     }
 
