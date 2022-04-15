@@ -4,15 +4,11 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "../LiquidityPool/ISocialTokenLiquidityPool.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
-import "../SocialToken/ISocialToken.sol";
-import "../SocialTokenNFT/ISocialTokenNFT.sol";
-import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
 contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
@@ -61,21 +57,21 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         funded = true;
     }
 
-    // Uasually will do nothing.
+    // Uasually will do nothing
     function refundAnyEth(address payable recipient) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
 
         recipient.transfer(address(this).balance);
     }
 
-    // Council function.
+    // Council function
     function setInterestRate(uint64 newDailyInterestRate) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
 
         dailyInterestRate = newDailyInterestRate;
     }
 
-    // Getters.
+    // Getters
     function getCurrentDay() public virtual view returns(uint32) {
         return uint32((block.timestamp - START_TIME) / 1 days);
     }
@@ -88,7 +84,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
             getCurrentDay() - userStake.startDay));
     }
 
-    // User functions.
+    // User functions
     function stake(uint256 amount) public {
         Stake storage userStake = stakes[_msgSender()];
 
@@ -124,7 +120,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         _awardInterest(userStake);
     }
 
-    // Private functions.
+    // Private functions
     function _calculateInterest(uint256 principal, uint64 rate, uint64 numberOfDays) private pure returns(uint256) {
         return (principal * rate * numberOfDays) / type(uint64).max;
     }
