@@ -42,8 +42,15 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), "Interface unsupported");
 
         manager = ISocialTokenManager(newManager);
+        manager.registerLiquidityPool();
     }
 
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return 
+            interfaceId == type(ISocialTokenLiquidityPool).interfaceId
+            || super.supportsInterface(interfaceId);
+    }
+    
     // Can only be called once
     function fundPool(uint256 tokenAmount, uint256 ethAmount) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
@@ -89,7 +96,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         Stake storage userStake = stakes[_msgSender()];
 
         require(amount > 0);
-        require(pairAddress.balanceOf(_msgSender()) >= amount, "Tried to stake more tokens than you have");
+        require(pairAddress.balanceOf(_msgSender()) >= amount, "Sender does not have enough tokens");
         require(amount + userStake.principal <= type(uint160).max);
 
         Stake memory origionalStake = userStake;
@@ -102,21 +109,33 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         _awardInterest(origionalStake);
     }
 
+    function unstake(uint256 amount) public {
+        Stake storage storedStake = stakes[_msgSender()];
+        require(storedStake.principal > 0, "Account not staked");
+        Stake memory userStake = storedStake;
+
+        if (amount >= storedStake.principal) {
+            delete(stakes[_msgSender()]);
+
+            pairAddress.transfer(_msgSender(), userStake.principal);
+            _awardInterest(userStake);
+        }
+        else {
+            storedStake.interestRate = dailyInterestRate;
+            storedStake.startDay = getCurrentDay();
+            storedStake.principal -= uint160(amount);
+
+            pairAddress.transfer(_msgSender(), amount);
+            _awardInterest(userStake);
+        }
+    }
+
     function collectInterest() public {
         Stake memory userStake = stakes[_msgSender()];
 
         stakes[_msgSender()].interestRate = dailyInterestRate;
         stakes[_msgSender()].startDay = getCurrentDay();
 
-        _awardInterest(userStake);
-    }
-
-    function unstake() public {
-        Stake memory userStake = stakes[_msgSender()];
-
-        delete(stakes[_msgSender()]);
-
-        pairAddress.transfer(_msgSender(), userStake.principal);
         _awardInterest(userStake);
     }
 

@@ -53,6 +53,13 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         selfdestruct(sendTo);
     }
 
+    function registerLiquidityPool() external {
+        this.authorize(_msgSender(), Sensitivity.AwardableContract);
+        require(IERC165(_msgSender()).supportsInterface(type(ISocialTokenLiquidityPool).interfaceId));
+
+        liquidityPools.push(ISocialTokenLiquidityPool(_msgSender()));
+    }
+
     function hasAuxToken(address account) public view returns(bool) {
         if (address(auxTokenContract) == address(0)) {
             return false;

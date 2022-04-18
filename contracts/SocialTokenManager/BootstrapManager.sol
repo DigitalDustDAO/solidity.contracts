@@ -77,6 +77,13 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         auxTokenContract = IERC20(contractAddress);
     }
 
+    function registerLiquidityPool() external {
+        this.authorize(_msgSender(), Sensitivity.AwardableContract);
+        require(IERC165(_msgSender()).supportsInterface(type(ISocialTokenLiquidityPool).interfaceId));
+
+        liquidityPools.push(ISocialTokenLiquidityPool(_msgSender()));
+    }
+
     function hasAuxToken(address) public pure returns(bool) {
         return true;
     }
