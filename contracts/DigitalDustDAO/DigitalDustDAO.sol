@@ -45,11 +45,14 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
-    function consumeAccess(address account, uint256 id, uint32 amount) external {
+    function consumeAccess(address account, uint256 id, uint32 amount) external returns(uint32 access) {
         require(rightsOf(_msgSender(), id) >= REVOKE_RIGHTS, "Caller does not have enough rights");
         require(rightsOf(account, id) >= amount && rightsOf(account, id) <= 100, "Not authorized");
 
         _balances[id][account].rights -= amount;
+        emit SetRights(id, _msgSender(), account, rights);
+
+        return _balances[id][account].rights;
     }
 
     function setRights(address account, uint256 id, uint32 rights) public {

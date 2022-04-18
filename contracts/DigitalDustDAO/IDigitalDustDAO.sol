@@ -26,8 +26,8 @@ interface IDigitalDustDAO {
     function rightsOf(address account, uint256 id) external view returns (uint32 rights);
     function penaltyOf(address account, uint256 id) external view returns (uint32 penalty);
     function accessOf(address account, uint256 id) external view returns (uint32 access);
+    function consumeAccess(address account, uint256 id, uint32 amount) external returns (uint32 access);
     function setPenalty(address account, uint256 id, uint32 penalty) external;
     function setRights(address account, uint256 id, uint32 rights) external;
     function startProject(address owner, uint256 id, uint128 amount) external;
-    function consumeAccess(address account, uint256 id, uint32 amount) external;
 }

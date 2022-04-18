@@ -39,7 +39,6 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
     function setManager(address newManager) external {
         require(_msgSender() == address(manager), UNAUTHORIZED);
-        require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), "Interface unsupported");
 
         manager = ISocialTokenManager(newManager);
         manager.registerLiquidityPool();
