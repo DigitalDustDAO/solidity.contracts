@@ -50,7 +50,7 @@ contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
         require(rightsOf(account, id) >= amount && rightsOf(account, id) <= 100, "Not authorized");
 
         _balances[id][account].rights -= amount;
-        emit SetRights(id, _msgSender(), account, rights);
+        emit SetRights(id, _msgSender(), account, _balances[id][account].rights);
 
         return _balances[id][account].rights;
     }
