@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../ERC777.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
-import "./ISocialToken.sol";
+import "../SocialToken/ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
 
@@ -26,7 +26,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 28;
     uint private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
-    uint private immutable START_TIME;
+    uint public immutable START_TIME;
 
     bytes private constant STAKE_RETURN = "Automatic return of stake";
     bytes private constant STAKE_REDEEM = "Manual redeem of stake";
@@ -47,23 +47,19 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     uint private linearInterestBonus;
     uint private quadraticInterestBonus;
 
-    constructor(address manager_) ERC777("Long Tail Social Token", "LTST") {
+    constructor(address manager_, address[] memory defaultOperators_) ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
 
         manager = ISocialTokenManager(manager_);
 
         START_TIME = block.timestamp - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
 
-        // Pick some default values
-        baseInterestRate = 50;
-        linearInterestBonus = 25;
-        quadraticInterestBonus = 10;
-        rewardPerMiningTask = 50;
+        // Pick some very low default values
+        baseInterestRate = 50000000;
+        linearInterestBonus = 25000000;
+        quadraticInterestBonus = 10000000;
+        rewardPerMiningTask = 10**this.decimals();
         miningGasReserve = 1500;
-
-        // mint 1MM to sender for now
-        // TODO: mint to LP
-        _mint(_msgSender(), 1000000000000000000000000, "", "");
 
         _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("SocialToken"), address(this));
     }

@@ -3,6 +3,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+//import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface ISocialTokenNFT {
     

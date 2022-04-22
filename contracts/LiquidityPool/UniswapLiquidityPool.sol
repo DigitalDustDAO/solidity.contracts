@@ -4,11 +4,13 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "../LiquidityPool/ISocialTokenLiquidityPool.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
+import "../SocialToken/ISocialToken.sol";
 
 contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
@@ -25,15 +27,19 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint64 private dailyInterestRate;
     bool private funded;
 
-    // the normal factory address is 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
     // the normal router address is  0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-    constructor(address managerAddress, address routerAddress) {
+    // Only pass in a pair address if one has already been created.
+    constructor(address managerAddress, address routerAddress, address existingPairAddress) {
         manager = ISocialTokenManager(managerAddress);
         uniV2RouterAddress = IUniswapV2Router02(routerAddress);
 
-         // Create a uniswap pair for this new token
-        pairAddress = IUniswapV2Pair(IUniswapV2Factory(uniV2RouterAddress.factory()).createPair(address(manager.getTokenContract()), uniV2RouterAddress.WETH()));
-
+        if (existingPairAddress == address(0)) {
+            // Create a uniswap pair for this new token
+            existingPairAddress = IUniswapV2Factory(uniV2RouterAddress.factory()).createPair(address(manager.getTokenContract()), uniV2RouterAddress.WETH());
+        }
+        
+        pairAddress = IUniswapV2Pair(existingPairAddress);
+        
         START_TIME = block.timestamp - (block.timestamp % 1 days);
     }
 
@@ -50,24 +56,24 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
             || super.supportsInterface(interfaceId);
     }
     
-    // Can only be called once
-    function fundPool(uint256 tokenAmount, uint256 ethAmount) public {
+    // Set up, can only be called once
+    function fundPool(uint256 tokenAmount) public payable {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
         require(!funded);
 
+        manager.getTokenContract().award(address(this), int256(tokenAmount), "Uniswap pool initial funding");
+
+        IERC777 tokenContract = IERC777(address(manager.getTokenContract()));
+        if (!tokenContract.isOperatorFor(address(uniV2RouterAddress), address(this))) {
+            tokenContract.authorizeOperator(address(uniV2RouterAddress));
+        }
+
         (uint256 amountToken, uint256 amountETH, uint256 liquidity) = 
-            uniV2RouterAddress.addLiquidityETH(address(manager.getTokenContract()), tokenAmount, tokenAmount, ethAmount, address(this), block.timestamp);
+            uniV2RouterAddress.addLiquidityETH(address(tokenContract), tokenAmount, tokenAmount, msg.value, address(this), block.timestamp);
         
         LPToDistribute = liquidity;
-
+        manager.registerLiquidityPool();
         funded = true;
-    }
-
-    // Uasually will do nothing
-    function refundAnyEth(address payable recipient) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
-
-        recipient.transfer(address(this).balance);
     }
 
     // Council function

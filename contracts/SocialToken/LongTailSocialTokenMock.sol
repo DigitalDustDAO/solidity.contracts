@@ -3,14 +3,14 @@
 pragma solidity 0.8.11;
 
 import "../SocialTokenManager/ISocialTokenManager.sol";
-import "./LongTailSocialToken.sol";
+import "../SocialToken/LongTailSocialToken.sol";
 
 contract LongTailSocialTokenMock is LongTailSocialToken {
     address _sender;
 
     constructor(
         address manager_
-    ) LongTailSocialToken(manager_) {}
+    ) LongTailSocialToken(manager_, new address[](0)) {}
 
     function setMsgSender(address sender_) public {
         _sender = sender_;

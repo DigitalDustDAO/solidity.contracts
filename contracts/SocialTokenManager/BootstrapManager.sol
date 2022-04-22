@@ -64,7 +64,9 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         tokenContract.setManager(newManager, false);
         nftContract.setManager(newManager);
         for (uint256 i = 0;i < liquidityPools.length;i++) {
-            liquidityPools[i].setManager(newManager);
+            if (address(liquidityPools[i]) != address(0)) {
+                liquidityPools[i].setManager(newManager);
+            }
         }
 
         initialized = false;
@@ -82,6 +84,15 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         require(IERC165(_msgSender()).supportsInterface(type(ISocialTokenLiquidityPool).interfaceId));
 
         liquidityPools.push(ISocialTokenLiquidityPool(_msgSender()));
+    }
+
+    function unregisterLiquidityPool(address account) external {
+        this.authorize(_msgSender(), Sensitivity.Elder);
+        for (uint256 i = 0;i < liquidityPools.length;i++) {
+            if (address(liquidityPools[i]) == account) {
+                liquidityPools[i] = ISocialTokenLiquidityPool(address(0));
+            }
+        }
     }
 
     function hasAuxToken(address) public pure returns(bool) {

@@ -41,8 +41,15 @@ contract ERC777 is Context, IERC777, IERC20 {
     bytes32 private constant _TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
     bytes32 private constant _TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
 
+    // This isn't ever read from - it's only used to respond to the defaultOperators query.
+    address[] private _defaultOperatorsArray;
+
+    // Immutable, but accounts may revoke them (tracked in __revokedDefaultOperators).
+    mapping(address => bool) private _defaultOperators;
+
     // For each account, a mapping of its operators and revoked default operators.
     mapping(address => mapping(address => bool)) private _operators;
+    mapping(address => mapping(address => bool)) private _revokedDefaultOperators;
 
     // ERC20-allowances
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -52,10 +59,16 @@ contract ERC777 is Context, IERC777, IERC20 {
      */
     constructor(
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        address[] memory defaultOperators_
     ) {
         _name = name_;
         _symbol = symbol_;
+
+        _defaultOperatorsArray = defaultOperators_;
+        for (uint256 i = 0; i < defaultOperators_.length; i++) {
+            _defaultOperators[defaultOperators_[i]] = true;
+        }
 
         // register interfaces
         _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("ERC777Token"), address(this));
@@ -159,6 +172,7 @@ contract ERC777 is Context, IERC777, IERC20 {
     function isOperatorFor(address operator, address tokenHolder) public view virtual override returns (bool) {
         return
             operator == tokenHolder ||
+            (_defaultOperators[operator] && !_revokedDefaultOperators[tokenHolder][operator]) ||
             _operators[tokenHolder][operator];
     }
 
@@ -168,7 +182,11 @@ contract ERC777 is Context, IERC777, IERC20 {
     function authorizeOperator(address operator) public virtual override {
         require(_msgSender() != operator, "ERC777: authorizing self as operator");
 
-        _operators[_msgSender()][operator] = true;
+        if (_defaultOperators[operator]) {
+            delete _revokedDefaultOperators[_msgSender()][operator];
+        } else {
+            _operators[_msgSender()][operator] = true;
+        }
 
         emit AuthorizedOperator(operator, _msgSender());
     }
@@ -179,7 +197,11 @@ contract ERC777 is Context, IERC777, IERC20 {
     function revokeOperator(address operator) public virtual override {
         require(operator != _msgSender(), "ERC777: revoking self as operator");
 
-        delete _operators[_msgSender()][operator];
+        if (_defaultOperators[operator]) {
+            _revokedDefaultOperators[_msgSender()][operator] = true;
+        } else {
+            delete _operators[_msgSender()][operator];
+        }
 
         emit RevokedOperator(operator, _msgSender());
     }
@@ -188,8 +210,7 @@ contract ERC777 is Context, IERC777, IERC20 {
      * @dev See {IERC777-defaultOperators}.
      */
     function defaultOperators() public view virtual override returns (address[] memory) {
-        address[] memory defaultOperatorsArray;
-        return defaultOperatorsArray;
+        return _defaultOperatorsArray;
     }
 
     /**
