@@ -2,34 +2,20 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "../ERC777.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
 
-contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
-
-    struct StakeDataPointer {
-        address owner;
-        uint64 interestRate;
-        uint32 index;
-    }
-
-    struct StakeData {
-        uint64 start;
-        uint64 end;
-        uint128 index;
-        uint256 principal;
-    }
+contract LongTailSocialToken is ISocialToken, ERC20 {
 
     uint private constant MAXIMUM_STAKE_DAYS = 5844;
     uint private constant MININUM_STAKE_DAYS = 28;
     uint private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
     uint public immutable START_TIME;
 
-    bytes private constant STAKE_RETURN = "Automatic return of stake";
-    bytes private constant STAKE_REDEEM = "Manual redeem of stake";
+    //bytes private constant STAKE_RETURN = "Automatic return of stake";
+    //bytes private constant STAKE_REDEEM = "Manual redeem of stake";
     string private constant STAKE_LIMIT = "Stake limit reached";
     string private constant UNAUTHORIZED = "Not authorized";
 
@@ -47,7 +33,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     uint private linearInterestBonus;
     uint private quadraticInterestBonus;
 
-    constructor(address manager_, address[] memory defaultOperators_) ERC777("Long Tail Social Token", "LTST", defaultOperators_) {
+    constructor(address manager_) ERC20("Long Tail Social Token", "LTST") {
 
         manager = ISocialTokenManager(manager_);
 
@@ -60,8 +46,6 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         quadraticInterestBonus = 10000000;
         rewardPerMiningTask = 10**18;
         miningGasReserve = 1500;
-
-        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("SocialToken"), address(this));
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
@@ -84,7 +68,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         miningGasReserve = miningReserve;
     }
 
-    function stake(uint256 amount, uint16 numberOfDays) public nonReentrant returns(uint32) {
+    function stake(uint256 amount, uint16 numberOfDays) public returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 today = getCurrentDay();
@@ -115,7 +99,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         ));
 
         // send the stake to this contract
-        _send(stakeAccount, address(this), amount, "", "Staked", false);
+        _transfer(stakeAccount, address(this), amount);
 
         emit Staked(
             stakeAccount,
@@ -129,7 +113,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         return uint32(accountIndex);
     }
 
-    function unstake(uint32 stakeNumber) public nonReentrant virtual {
+    function unstake(uint32 stakeNumber) public virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
         StakeData storage myStake = stakesByAccount[stakeAccount][stakeNumber];
@@ -148,15 +132,15 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
 
         // distribute the funds
         if (interest >= 0) {
-            _send(address(this), stakeAccount, myStake.principal, "", STAKE_REDEEM, false);
-            _mint(stakeAccount, uint256(interest), "", STAKE_REDEEM, false);
+            _transfer(address(this), stakeAccount, myStake.principal);
+            _mint(stakeAccount, uint256(interest));
         }
         else if (int256(myStake.principal) + interest > 0) {
-            _send(address(this), stakeAccount, uint256(int256(myStake.principal) + interest), "", STAKE_REDEEM, false);
-            _burn(address(this), uint256(-interest), "", STAKE_REDEEM);
+            _transfer(address(this), stakeAccount, uint256(int256(myStake.principal) + interest));
+            _burn(address(this), uint256(-interest));
         }
         else { // exceedingly unlikely... but not impossible
-            _burn(address(this), myStake.principal, "", STAKE_REDEEM);
+            _burn(address(this), myStake.principal);
         }
 
         // emit events
@@ -168,8 +152,8 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
 
         uint256 tasksCompleted = 0;
         uint256 interest;
-        StakeDataPointer memory currentStake;
-        StakeData memory accountStake;
+        StakeDataPointer storage currentStake;
+        StakeData storage accountStake;
 
         // adjust interest (if needed)
         if (lastInterestAdjustment < getCurrentDay()) {
@@ -181,36 +165,38 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         for (uint256 i = lastCompletedDistribution;i <= getCurrentDay();i++) {
             while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
                 currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
-                stakesByEndDay[i].pop();
                 if (currentStake.owner != address(0)) {
                     accountStake = stakesByAccount[currentStake.owner][currentStake.index];
-                    delete(stakesByAccount[currentStake.owner][currentStake.index]);
 
-                    // done this way to prevent the possibility of rollbacks.
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
-                    _move(address(this), address(this), currentStake.owner, accountStake.principal, "", STAKE_RETURN);
-                    _mint(currentStake.owner, interest, "", STAKE_RETURN, true);
+                    _transfer(address(this), currentStake.owner, accountStake.principal);
+                    _mint(currentStake.owner, interest);
 
+                    delete(stakesByAccount[currentStake.owner][currentStake.index]);
                     tasksCompleted++;
                 }
+
+                stakesByEndDay[i].pop();
             }
         }
 
         if (tasksCompleted > 0) {
-            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted, "", "Mining reward", true);
+            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted);
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
     }
 
-    function award(address account, int256 amount, bytes memory explanation) virtual external nonReentrant {
+    function award(address account, int256 amount, bytes memory explanation) virtual external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
-            _burn(account, uint256(-amount), "", explanation);
+            _burn(account, uint256(-amount));
         }
         else if (amount > 0) {
-            _mint(account, uint256(amount), "", explanation, false);
+            _mint(account, uint256(amount));
         }
+
+        emit AwardToAddress(account, amount, explanation);
     }
 
     function getNumMiningTasks() public virtual view returns(uint256) {
@@ -250,7 +236,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
     function getVotingPower(address account) external view returns(uint256) {
         uint256 votingPower = 0;
         StakeData storage thisStake;
-        uint256 finalDepth = stakesByAccount[account].length <= 256 ? 0 : stakesByAccount[account].length - 256;
+        uint256 finalDepth = stakesByAccount[account].length <= 128 ? 0 : stakesByAccount[account].length - 128;
 
         for(uint256 i = stakesByAccount[account].length - 1; i > finalDepth; i--) {
             thisStake = stakesByAccount[account][i];
@@ -290,10 +276,8 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         }
     }
 
-    function _beforeTokenTransfer(address operator, address from, address to, uint256) internal view override {
-        if (operator != address(this)) {
-            manager.authorizeTx(from, to);
-        }
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
+            manager.authorizeTx(from, to, amount);
     }
 
     function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){

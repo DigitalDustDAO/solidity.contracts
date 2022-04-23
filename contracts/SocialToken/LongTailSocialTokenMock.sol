@@ -10,7 +10,7 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
 
     constructor(
         address manager_
-    ) LongTailSocialToken(manager_, new address[](0)) {}
+    ) LongTailSocialToken(manager_) {}
 
     function setMsgSender(address sender_) public {
         _sender = sender_;
@@ -41,6 +41,6 @@ contract LongTailSocialTokenMock is LongTailSocialToken {
     }
 
     function mint(address account, uint256 amount) public {
-        _mint(account, amount, "", "");
+        _mint(account, amount);
     }
 }

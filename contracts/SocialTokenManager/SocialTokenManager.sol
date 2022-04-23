@@ -111,9 +111,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         }
     }
 
-    function authorizeTx(address, address) external view { 
-        // return true in all cases
-    }
+    function authorizeTx(address, address, uint256) external view {}
 
     function adjustInterest() external view {
         // not implemented in this version
