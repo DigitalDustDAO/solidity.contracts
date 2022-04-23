@@ -124,7 +124,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
             require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.AwardableContract) {
-            require(daoContract.rightsOf(account, daoId) == CONTRACT_RIGHTS, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= CONTRACT_RIGHTS, UNAUTHORIZED);
         }
         else if (level == Sensitivity.TokenContract) {
             require(account == address(tokenContract), UNAUTHORIZED);
@@ -134,8 +134,8 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         }
     }
 
-    function authorizeTx(address source, address destination) external view {
-        require(daoContract.accessOf(source, daoId) >= 1 && daoContract.accessOf(destination, daoId) >= 1, UNAUTHORIZED);
+    function authorizeTx(address, address to) external view {
+        require(to == address(0) || daoContract.accessOf(to, daoId) >= 1, UNAUTHORIZED);
     }
 
     function adjustInterest() external view {

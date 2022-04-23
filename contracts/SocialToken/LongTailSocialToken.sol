@@ -58,7 +58,7 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         baseInterestRate = 50000000;
         linearInterestBonus = 25000000;
         quadraticInterestBonus = 10000000;
-        rewardPerMiningTask = 10**this.decimals();
+        rewardPerMiningTask = 10**18;
         miningGasReserve = 1500;
 
         _ERC1820_REGISTRY.setInterfaceImplementer(address(this), keccak256("SocialToken"), address(this));
@@ -290,6 +290,12 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         }
     }
 
+    function _beforeTokenTransfer(address operator, address from, address to, uint256) internal view override {
+        if (operator != address(this)) {
+            manager.authorizeTx(from, to);
+        }
+    }
+
     function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){
         if (currentDay - start <= (end - start) / 2) {
             return (currentDay - start) * 2;
@@ -303,13 +309,13 @@ contract LongTailSocialToken is ISocialToken, ReentrancyGuard, ERC777 {
         return (interestRate * duration * principal) / type(uint64).max;
     }
 
-    function send(address recipient, uint256 amount, bytes memory data) public virtual override {
-        manager.authorizeTx(_msgSender(), recipient);
-        super.send(recipient, amount, data);
-    }
+    // function send(address recipient, uint256 amount, bytes memory data) public virtual override {
+    //     manager.authorizeTx(_msgSender(), recipient);
+    //     super.send(recipient, amount, data);
+    // }
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        manager.authorizeTx(_msgSender(), recipient);
-        return super.transfer(recipient, amount);
-    }
+    // function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    //     manager.authorizeTx(_msgSender(), recipient);
+    //     return super.transfer(recipient, amount);
+    // }
 }
