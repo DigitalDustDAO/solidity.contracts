@@ -7,27 +7,32 @@ interface IDigitalDustDAO {
         uint256 indexed id,
         address indexed from,
         address indexed to,
-        uint64 rights
+        uint128 rights
     );
 
     event SetPenalty (
         uint256 indexed id,
         address indexed from,
         address indexed to,
-        uint64 penalty
+        uint128 penalty
     );
 
     event StartProject (
         address indexed from,
         uint256 indexed id,
-        uint128 amountMinted
+        uint256 amountMinted
     );
 
-    function rightsOf(address account, uint256 id) external view returns (uint32 rights);
-    function penaltyOf(address account, uint256 id) external view returns (uint32 penalty);
-    function accessOf(address account, uint256 id) external view returns (uint32 access);
-    function consumeAccess(address account, uint256 id, uint32 amount) external returns (uint32 access);
-    function setPenalty(address account, uint256 id, uint32 penalty) external;
-    function setRights(address account, uint256 id, uint32 rights) external;
-    function startProject(address owner, uint256 id, uint128 amount) external;
+    struct Access {
+        uint128 rights;
+        uint128 penalty;
+    }
+
+    function rightsOf(address account, uint256 id) external view returns (uint128 rights);
+    function penaltyOf(address account, uint256 id) external view returns (uint128 penalty);
+    function accessOf(address account, uint256 id) external view returns (uint128 access);
+    function consumeAccess(address account, uint256 id, uint128 amount) external returns (uint128 access);
+    function setPenalty(address account, uint256 id, uint128 penalty) external;
+    function setRights(address account, uint256 id, uint128 rights) external;
+    function startProject(address owner, uint256 id, uint256 amount) external;
 }

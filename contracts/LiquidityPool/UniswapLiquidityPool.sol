@@ -4,7 +4,6 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
@@ -24,7 +23,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint256 private immutable START_TIME;
 
     mapping(address => Stake) private stakes;
-    uint64 private dailyInterestRate;
+    uint64 public dailyInterestRate;
     bool private funded;
 
     // the normal router address is 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
@@ -42,6 +41,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         pairAddress = IUniswapV2Pair(existingPairAddress);
         
         START_TIME = block.timestamp - (block.timestamp % 1 days);
+        dailyInterestRate = 4294967296;
     }
 
     function setManager(address newManager) external {
@@ -64,10 +64,8 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
         manager.getTokenContract().award(address(this), int256(tokenAmount), "Uniswap pool initial funding");
 
-        IERC777 tokenContract = IERC777(address(manager.getTokenContract()));
-        if (!tokenContract.isOperatorFor(address(pairAddress), address(this))) {
-            tokenContract.authorizeOperator(address(pairAddress));
-        }
+        IERC20 tokenContract = IERC20(address(manager.getTokenContract()));
+        tokenContract.approve(address(pairAddress), tokenAmount);
 
         IERC20 wethAddress = IERC20(uniV2RouterAddress.WETH());
         uint256 wethAmount = wethAddress.balanceOf(address(this));        
@@ -92,10 +90,10 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         return uint32((block.timestamp - START_TIME) / 1 days);
     }
 
-    function getStakeData(address account) public view returns(uint160 principal, uint256 uncollectedRewards) {
+    function getStakeData(address account) public view returns(uint160 principal, uint64 mininumInterestRate, uint256 uncollectedRewards) {
         Stake storage userStake = stakes[account];
 
-        return (userStake.principal, _calculateInterest(userStake.principal, 
+        return (userStake.principal, userStake.interestRate, _calculateInterest(userStake.principal, 
             userStake.interestRate < dailyInterestRate ? userStake.interestRate : dailyInterestRate, 
             getCurrentDay() - userStake.startDay));
     }
@@ -105,7 +103,8 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         Stake storage userStake = stakes[_msgSender()];
 
         require(amount > 0);
-        require(pairAddress.balanceOf(_msgSender()) >= amount, "Sender does not have enough tokens");
+        require(pairAddress.balanceOf(_msgSender()) >= amount, "Not enough tokens");
+        require(pairAddress.allowance(_msgSender(), address(this)) >= amount, "Authorization needed");
         require(amount + userStake.principal <= type(uint160).max);
 
         Stake memory origionalStake = userStake;

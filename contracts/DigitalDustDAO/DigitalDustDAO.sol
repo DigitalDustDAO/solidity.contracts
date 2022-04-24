@@ -2,86 +2,96 @@
 
 pragma solidity 0.8.11;
 
-import "../ERC1155WithAccess.sol";
-import "./IDigitalDustDAO.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
+import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
-contract DigitalDustDAO is IDigitalDustDAO, ERC1155WithAccess {
-    uint64 constant private GRANT_RIGHTS = 200;
-    uint64 constant private REVOKE_RIGHTS = 400;
-    uint64 constant private APPLY_PENALTY = 400;
-    uint64 constant private START_PROJECT = 500;
+contract DigitalDustDAO is IDigitalDustDAO, Context, ERC1155 {
+    uint128 constant private GRANT_RIGHTS  = 200;
+    uint128 constant private REVOKE_RIGHTS = 400;
+    uint128 constant private APPLY_PENALTY = 400;
+    uint128 constant private START_PROJECT = 500;
 
-    mapping(uint256 => mapping(address => MemberBalance)) private _balances;
+    string constant private INSUFFICIENT_RIGHTS = "Caller does not have enough rights";
 
-    mapping(uint256 => bool) private _activeProjects;
+    mapping(uint256 => mapping(address => Access)) private access;
+    mapping(uint256 => uint256) private projectShareTotals;
 
-    constructor() ERC1155WithAccess("") {
-        _balances[0][_msgSender()].rights = type(uint32).max;
-        _activeProjects[0] = true;
+    // TODO: Payouts
 
-        emit SetRights(0, address(0), _msgSender(), type(uint32).max);
+    constructor(uint256 levelZeroTokensToMint) ERC1155("") {
+        access[0][_msgSender()].rights = type(uint128).max;
+        projectShareTotals[0] = levelZeroTokensToMint;
+        _mint(_msgSender(), 0, levelZeroTokensToMint, "");
+
+        emit SetRights(0, address(0), _msgSender(), type(uint128).max);
     }
 
-    function rightsOf(address account, uint256 id) public view returns (uint32 rights) {
-        return _balances[id][account].rights;
+    function rightsOf(address account, uint256 id) public view returns (uint128) {
+        return access[id][account].rights;
     }
 
-    function penaltyOf(address account, uint256 id) public view returns (uint32 penalty) {
-        return _balances[id][account].penalty;
+    function penaltyOf(address account, uint256 id) public view returns (uint128) {
+        return access[id][account].penalty;
     }
 
-    function accessOf(address account, uint256 id) public view returns (uint32 access) {
-        return _balances[id][account].rights - _balances[id][account].penalty;
+    function accessOf(address account, uint256 id) public view returns (uint128) {
+        return access[id][account].rights - access[id][account].penalty;
     }
 
     function getProjectActive(uint256 id) public view returns(bool) {
-        return _activeProjects[id];
+        return projectShareTotals[id] > 0;
     }
 
-    function setPenalty(address account, uint256 id, uint32 penalty) public {
-        require(rightsOf(_msgSender(), id) >= APPLY_PENALTY, "Not enough rights to set penalty");
-        _balances[id][account].penalty = penalty;
+    function setPenalty(address account, uint256 id, uint128 penalty) public {
+        require(rightsOf(_msgSender(), id) >= APPLY_PENALTY, INSUFFICIENT_RIGHTS);
+        access[id][account].penalty = penalty;
 
         emit SetPenalty(id, _msgSender(), account, penalty);
     }
 
-    function consumeAccess(address account, uint256 id, uint32 amount) external returns(uint32 access) {
-        require(rightsOf(_msgSender(), id) >= REVOKE_RIGHTS, "Caller does not have enough rights");
+    function consumeAccess(address account, uint256 id, uint128 amount) external returns(uint128) {
+        require(rightsOf(_msgSender(), id) >= REVOKE_RIGHTS, INSUFFICIENT_RIGHTS);
         require(rightsOf(account, id) >= amount && rightsOf(account, id) <= 100, "Not authorized");
 
-        _balances[id][account].rights -= amount;
-        emit SetRights(id, _msgSender(), account, _balances[id][account].rights);
+        access[id][account].rights -= amount;
+        emit SetRights(id, _msgSender(), account, access[id][account].rights);
 
-        return _balances[id][account].rights;
+        return access[id][account].rights;
     }
 
-    function setRights(address account, uint256 id, uint32 rights) public {
-        uint64 callerRights = rightsOf(_msgSender(), id);
-        uint64 targetRights = rightsOf(account, id);
-        require(callerRights >= GRANT_RIGHTS, "Caller does not have enough rights");
-        require(
-            callerRights >= REVOKE_RIGHTS
-            || targetRights < rights,
-           "Caller does not have enough rights"
-        );
+    function setRights(address account, uint256 id, uint128 rights) public {
+        uint128 callerRights = rightsOf(_msgSender(), id);
+        uint128 targetRights = rightsOf(account, id);
+        require(callerRights >= GRANT_RIGHTS, INSUFFICIENT_RIGHTS);
+        require(callerRights >= REVOKE_RIGHTS || targetRights < rights, INSUFFICIENT_RIGHTS);
         require(callerRights >= rights, "Callers rights cannot exceed granted rights");
         require(callerRights >= targetRights, "Cannot revoke rights from higher ranked accounts");
-        _balances[id][account].rights = rights;
+        
+        access[id][account].rights = rights;
 
         emit SetRights(id, _msgSender(), account, rights);
+    }
+
+    function setProjectUri(string memory newUri) public {
+        require(rightsOf(_msgSender(), 0) >= START_PROJECT, INSUFFICIENT_RIGHTS);
+
+        _setURI(newUri);
     }
 
     function startProject(
         address owner,
         uint256 id,
-        uint128 amount
+        uint256 amount
     ) public {
-        require(rightsOf(_msgSender(), 0) >= START_PROJECT, "Not enough rights to start a project");
-        require(_activeProjects[id] == false, "Project id already exists");
+        require(rightsOf(_msgSender(), 0) >= START_PROJECT, INSUFFICIENT_RIGHTS);
+        require(amount > 0, "Must mint at least one project coin");
+        require(projectShareTotals[id] == 0, "Project id in use");
 
-        _activeProjects[id] = true;
+        projectShareTotals[id] = amount;
         _mint(owner, id, amount, "");
-        _balances[id][owner].rights = type(uint32).max;
+        access[id][owner].rights = type(uint128).max;
 
         emit StartProject(owner, id, amount);
     }
