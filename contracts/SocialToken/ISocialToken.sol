@@ -27,7 +27,7 @@ interface ISocialToken {
     event AwardToAddress (
         address indexed account,
         int256 amount,
-        bytes explination
+        string explination
     );
 
     struct StakeDataPointer {
@@ -45,5 +45,5 @@ interface ISocialToken {
 
     function setManager(address newManager, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external;
-    function award(address account, int256 amount, bytes memory explanation) external;
+    function award(address account, int256 amount, string memory explanation) external;
 }

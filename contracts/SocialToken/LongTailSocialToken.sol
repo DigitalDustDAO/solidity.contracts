@@ -14,8 +14,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     uint private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
     uint public immutable START_TIME;
 
-    //bytes private constant STAKE_RETURN = "Automatic return of stake";
-    //bytes private constant STAKE_REDEEM = "Manual redeem of stake";
     string private constant STAKE_LIMIT = "Stake limit reached";
     string private constant UNAUTHORIZED = "Not authorized";
 
@@ -186,7 +184,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
     }
 
-    function award(address account, int256 amount, bytes memory explanation) virtual external {
+    function award(address account, int256 amount, string memory explanation) virtual external {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
@@ -292,14 +290,4 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {
         return (interestRate * duration * principal) / type(uint64).max;
     }
-
-    // function send(address recipient, uint256 amount, bytes memory data) public virtual override {
-    //     manager.authorizeTx(_msgSender(), recipient);
-    //     super.send(recipient, amount, data);
-    // }
-
-    // function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-    //     manager.authorizeTx(_msgSender(), recipient);
-    //     return super.transfer(recipient, amount);
-    // }
 }
