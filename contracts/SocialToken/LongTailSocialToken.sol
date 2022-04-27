@@ -9,10 +9,10 @@ import "../SocialToken/ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC20 {
 
-    uint private constant MAXIMUM_STAKE_DAYS = 5844;
-    uint private constant MININUM_STAKE_DAYS = 28;
-    uint private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
-    uint public immutable START_TIME;
+    uint256 public constant MAXIMUM_STAKE_DAYS = 5844;
+    uint256 public constant MININUM_STAKE_DAYS = 14;
+    uint256 private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
+    uint256 public immutable START_TIME;
 
     string private constant STAKE_LIMIT = "Stake limit reached";
     string private constant UNAUTHORIZED = "Not authorized";
@@ -22,14 +22,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     ISocialTokenManager public manager;
 
-    uint internal lastInterestAdjustment;
-    uint private lastCompletedDistribution;
-    uint private rewardPerMiningTask;
-    uint private miningGasReserve;
-
-    uint private baseInterestRate;
-    uint private linearInterestBonus;
-    uint private quadraticInterestBonus;
+    bool private mining;
+    uint256 internal lastInterestAdjustment;
+    uint256 internal lastCompletedDistribution;
+    uint256 internal rewardPerMiningTask;
+    uint256 internal miningGasReserve;
+    uint256 internal baseInterestRate;
+    uint256 internal linearInterestBonus;
+    uint256 internal quadraticInterestBonus;
 
     constructor(address manager_) ERC20("Long Tail Social Token", "LTST") {
 
@@ -147,7 +147,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function mine() public virtual {
         require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
+        manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
 
+        mining = true;
         uint256 tasksCompleted = 0;
         uint256 interest;
         StakeDataPointer storage currentStake;
@@ -182,6 +184,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             _mint(_msgSender(), rewardPerMiningTask * tasksCompleted);
             emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
         }
+
+        mining = false;
     }
 
     function award(address account, int256 amount, string memory explanation) virtual external {
@@ -275,7 +279,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
-            manager.authorizeTx(from, to, amount);
+        if (!mining) { manager.authorizeTx(from, to, amount); }
     }
 
     function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){

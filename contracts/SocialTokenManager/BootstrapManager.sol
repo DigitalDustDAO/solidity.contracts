@@ -124,7 +124,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
             require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.AwardableContract) {
-            require(daoContract.rightsOf(account, daoId) >= CONTRACT_RIGHTS, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) == CONTRACT_RIGHTS, UNAUTHORIZED);
         }
         else if (level == Sensitivity.TokenContract) {
             require(account == address(tokenContract), UNAUTHORIZED);

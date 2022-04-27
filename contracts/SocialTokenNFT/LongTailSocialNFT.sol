@@ -17,8 +17,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
 
     ISocialTokenManager public manager;
 
-    string[] public baseTokenURIs;
-    string[] public auxTokenURIs;
+    string[] private baseTokenURIs;
+    string[] private auxTokenURIs;
 
     uint8 private constant MAXIMUM_LEVEL = 8;
     string private constant SLASH = "/";
@@ -44,7 +44,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     uint256 public totalTokens;
     uint256 public elementMintCost;
     uint256 public forgeCost;
-    uint256 public highestDefinedGroup;
+    uint256 internal highestDefinedGroup;
 
     constructor(address manager_) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);

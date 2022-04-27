@@ -98,8 +98,8 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     function getStakeData(address account) public view returns(uint160 principal, uint64 mininumInterestRate, uint256 uncollectedRewards) {
         Stake storage userStake = stakes[account];
 
-        return (userStake.principal, userStake.interestRate, _calculateInterest(userStake.principal, 
-            userStake.interestRate < interestRate ? userStake.interestRate : interestRate, 
+        return (userStake.principal, userStake.interestRate, userStake.startDay >= getCurrentDay() ? 0 :
+            _calculateInterest(userStake.principal, userStake.interestRate < interestRate ? userStake.interestRate : interestRate, 
             getCurrentDay() - userStake.startDay));
     }
 
