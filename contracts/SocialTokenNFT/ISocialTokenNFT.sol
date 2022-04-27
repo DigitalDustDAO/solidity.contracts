@@ -35,7 +35,6 @@ interface ISocialTokenNFT {
     );
 
     event ForgeCostSet (
-        uint8 maximumMint,
         uint256 costForElementForge,
         uint256 costForUpgradeForge
     );
@@ -46,7 +45,7 @@ interface ISocialTokenNFT {
     // Economy adjustment functions
     function transferOwnership(address newOwner) external;
     function setInterestBonus(uint256 level, uint64 newBonus) external;
-    function setForgeValues(uint8 newMax, uint256 newElementCost, uint256 newForgeCost) external;
+    function setForgeValues(uint256 newElementCost, uint256 newForgeCost) external;
     function setURIs(uint16 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions

@@ -11,13 +11,13 @@ interface ISocialTokenLiquidityPool is IERC165 {
 
     struct Stake {
         uint32 startDay;
-        uint64 interestRate;
-        uint160 principal;
+        uint96 interestRate;
+        uint128 principal;
     }
 
 
     function setManager(address newManager) external;
     function fundPool(uint256 tokenAmount) external;
-    function setInterestRate(uint64 newInterestRate, uint32 newVestingPeriod) external;
-    function getStakeData(address account) external view returns(uint160 principal, uint64 mininumInterestRate, uint256 uncollectedRewards);
+    function setInterestRate(uint96 newInterestRate, uint32 newVestingPeriod) external;
+    function getStakeData(address account) external view returns(uint128 principal, uint96 mininumInterestRate, uint256 uncollectedRewards);
 }

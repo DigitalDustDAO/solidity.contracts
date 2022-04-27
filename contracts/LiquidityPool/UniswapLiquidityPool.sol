@@ -23,9 +23,9 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint256 private immutable START_TIME;
 
     mapping(address => Stake) private stakes;
-    uint64 public interestRate;
     uint32 public vestingPeriod;
     uint256 private LPToDistribute;
+    uint96 public interestRate;
     bool private funded;
 
     // the normal router address is 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
@@ -83,7 +83,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     }
 
     // Maintainance function
-    function setInterestRate(uint64 newInterestRate, uint32 newVestingPeriod) public {
+    function setInterestRate(uint96 newInterestRate, uint32 newVestingPeriod) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         interestRate = newInterestRate;
@@ -95,7 +95,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         return uint32((block.timestamp - START_TIME) / 1 days);
     }
 
-    function getStakeData(address account) public view returns(uint160 principal, uint64 mininumInterestRate, uint256 uncollectedRewards) {
+    function getStakeData(address account) public view returns(uint128 principal, uint96 mininumInterestRate, uint256 uncollectedRewards) {
         Stake storage userStake = stakes[account];
 
         return (userStake.principal, userStake.interestRate, userStake.startDay >= getCurrentDay() ? 0 :
@@ -110,12 +110,12 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         require(amount > 0);
         require(pairAddress.balanceOf(_msgSender()) >= amount, "Not enough tokens");
         require(pairAddress.allowance(_msgSender(), address(this)) >= amount, "Authorization needed");
-        require(amount + storedStake.principal <= type(uint160).max);
+        require(amount + storedStake.principal <= type(uint128).max);
 
         if (storedStake.principal == 0) {
             storedStake.interestRate = interestRate;
             storedStake.startDay = getCurrentDay() + vestingPeriod;
-            storedStake.principal = uint160(amount);
+            storedStake.principal = uint128(amount);
         }
         else {
             Stake memory userStake = storedStake;
@@ -128,7 +128,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
                 }
             }
 
-            storedStake.principal += uint160(amount);
+            storedStake.principal += uint128(amount);
             
             _awardInterest(userStake);
         }
@@ -156,7 +156,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
                 }
             }
 
-            storedStake.principal -= uint160(amount);
+            storedStake.principal -= uint128(amount);
 
             pairAddress.transfer(_msgSender(), amount);
         }
