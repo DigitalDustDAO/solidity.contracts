@@ -82,6 +82,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         require(accountIndex <= type(uint32).max, STAKE_LIMIT);
         require(endDayIndex <= type(uint128).max, STAKE_LIMIT);
 
+        // reduce the amount 
+
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
             stakeAccount,
@@ -121,8 +123,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         
         // calculate the reward
         int256 interest = calculateInterest(myStake.start, myStake.end, getCurrentDay(),
-            stakesByEndDay[myStake.end][myStake.index].interestRate, myStake.principal
-        );
+            stakesByEndDay[myStake.end][myStake.index].interestRate, myStake.principal);
 
         // delete the stake data
         delete(stakesByEndDay[myStake.end][myStake.index]);
@@ -193,12 +194,12 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         if (amount < 0) {
             _burn(account, uint256(-amount));
+            emit AwardToAddress(account, amount, explanation);
         }
         else if (amount > 0) {
             _mint(account, uint256(amount));
+            emit AwardToAddress(account, amount, explanation);
         }
-
-        emit AwardToAddress(account, amount, explanation);
     }
 
     function getNumMiningTasks() public virtual view returns(uint256) {
@@ -252,15 +253,20 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     }
 
     // This function gets the interest that will be earned if you withdraw a stake on a particular day.
-    function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) public pure returns(int256) {
+    //  If you withdraw the same day you stake then you don't get any penality.
+    function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) 
+            public pure returns(int256 interest) {
         uint256 halfStakeLength = (end - start) / 2;
         uint256 timeStaked = dayOfWithdrawal - start;
 
-        if (timeStaked < halfStakeLength) {
-            return int256((_fullInterest(end - start, interestRate, principal) * timeStaked) / halfStakeLength) * -1;
+        if (timeStaked == 0) {
+            interest = 0;
+        }
+        else if (timeStaked < halfStakeLength) {
+            interest = int256((_fullInterest(end - start, interestRate, principal) * timeStaked) / halfStakeLength) * -1;
         }
         else {
-            return int256((_fullInterest(end - start, interestRate, principal) * (timeStaked - halfStakeLength)) / halfStakeLength);
+            interest = int256((_fullInterest(end - start, interestRate, principal) * (timeStaked - halfStakeLength)) / halfStakeLength);
         }
     }
 

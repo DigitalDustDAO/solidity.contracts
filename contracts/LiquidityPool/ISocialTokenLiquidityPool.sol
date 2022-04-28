@@ -8,16 +8,20 @@ import "../SocialToken//ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 
 interface ISocialTokenLiquidityPool is IERC165 {
+    event Staked (
+        address indexed account,
+        uint64 indexed startDay,
+        uint256 totalAmountStaked
+    );
 
     struct Stake {
-        uint32 startDay;
-        uint96 interestRate;
-        uint128 principal;
+        uint64 startDay;
+        uint192 principal;
     }
 
 
     function setManager(address newManager) external;
     function fundPool(uint256 tokenAmount) external;
-    function setInterestRate(uint96 newInterestRate, uint32 newVestingPeriod) external;
-    function getStakeData(address account) external view returns(uint128 principal, uint96 mininumInterestRate, uint256 uncollectedRewards);
+    function setInterestRate(uint128 newInterestRate, uint64 newVestingPeriod) external;
+    function getStakeData(address account) external view returns(uint192 principal, uint256 uncollectedRewards);
 }

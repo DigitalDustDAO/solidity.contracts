@@ -22,12 +22,13 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
 
     uint8 private constant MAXIMUM_LEVEL = 6;
     string private constant SLASH = "/";
-    string private constant NOT_ENABLED = "Cannot forge: Level not enabled.";
-    string private constant INVALID_INPUT = "Cannot forge: Inputs invalid.";
-    string private constant OUTBOUNDS = "Out of bounds.";
-    string private constant CREATES_HOLES = "Array cannot expand by more than 1 element.";
-    bytes32 private constant AUX_URI_UNLOCK_R = "0x556e6c6f636b2072756c6520333420";
-    bytes32 private constant AUX_URI_UNLOCK_S = "66756e6374696f6e616c697479";
+    string private constant NOT_ENABLED = "Cannot forge: Level not enabled";
+    string private constant INVALID_INPUT = "Cannot forge: Inputs invalid";
+    string private constant OUTBOUNDS = "Out of bounds";
+    string private constant FORGE_COST = "Forging cost";
+    string private constant CREATES_HOLES = "Array cannot expand by more than 1 element";
+    bytes32 private constant AUX_URI_UNLOCK_R = "0x556e6c6f636b2072756c65203334";
+    bytes32 private constant AUX_URI_UNLOCK_S = "0x2066756e6374696f6e616c697479";
 
     mapping(uint256 => NFTData) private dataMap;
     mapping(uint256 => uint256) private totalOfGroup;
@@ -286,9 +287,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
      * User functions
      */
     function collectBounties(uint256 number) public {
-        
         NFTData memory item;
         NFTData[] storage bountyList = unclaimedBounties[_msgSender()];
+        
         while (bountyList.length > 0 && number > 0) {
             item = bountyList[bountyList.length - 1];
 
@@ -311,42 +312,42 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, Ownabl
     function forge1Element() public {
         require(elementSize > 0, NOT_ENABLED);
 
-        manager.getTokenContract().award(_msgSender(), elementMintCost * -1, "forging cost");
+        manager.getTokenContract().award(_msgSender(), elementMintCost * -1, FORGE_COST);
 
         _safeMint(_msgSender(), NFTData (0, 0, elementIndex, 0));
         elementIndex = (elementIndex + 1) % elementSize;
     }
 
-    function forge3Elements(uint256 quantity) public {
+    function forge3Elements() public {
         require(elementSize > 0, NOT_ENABLED);
 
-        manager.getTokenContract().award(_msgSender(), elementMintCost * -3, "forging cost");
+        manager.getTokenContract().award(_msgSender(), elementMintCost * -3, FORGE_COST);
 
         NFTData memory template = NFTData (0, 0, elementIndex, 0);
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        elementIndex = (template.index + 1) % elementSize;
     }
 
-    function forge5Elements(uint256 quantity) public {
+    function forge5Elements() public {
         require(elementSize > 0, NOT_ENABLED);
 
-        manager.getTokenContract().award(_msgSender(), elementMintCost * -5, "forging cost");
+        manager.getTokenContract().award(_msgSender(), elementMintCost * -5, FORGE_COST);
 
         NFTData memory template = NFTData (0, 0, elementIndex, 0);
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        template.index = (template.index + 1) % elementSize;
         _safeMint(_msgSender(), template);
-        elementIndex = (elementIndex + 1) % elementSize;
+        elementIndex = (template.index + 1) % elementSize;
     }
 
     function forge(uint256 templateId, uint256 materialId) public {
