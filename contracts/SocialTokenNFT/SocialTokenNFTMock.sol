@@ -7,10 +7,12 @@ import "./ISocialTokenNFT.sol";
 
 contract SocialTokenNFTMock is LongTailSocialNFT {
     address private _sender;
+    bytes32 private constant uriUnlockString = 0x180d9267f8f17c313c9b13ca786ddb570e4b8bf845ccaf6eeb3c62b590a5ac9e;
+                                // ^ the result of attempting to sign "Unlock rule 34 functionality" in metamask.
 
     constructor(
         address manager_
-    ) LongTailSocialNFT(manager_) {}
+    ) LongTailSocialNFT(manager_, uriUnlockString) {}
 
     function setMsgSender(address sender_) public {
         _sender = sender_;

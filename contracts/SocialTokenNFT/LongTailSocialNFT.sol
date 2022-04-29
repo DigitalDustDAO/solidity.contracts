@@ -18,19 +18,18 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     string[] private baseTokenURIs;
     string[] private auxTokenURIs;
 
-    //bytes32 private constant AUX_URI_UNLOCK = 0x556e6c6f636b2072756c652033342066756e6374696f6e616c69747900000000;
-    bytes32 private constant AUX_URI_UNLOCK = 0x180d9267f8f17c313c9b13ca786ddb570e4b8bf845ccaf6eeb3c62b590a5ac9e;
-    uint8 private constant MAXIMUM_LEVEL = 8;
+    bytes32 private immutable AUX_URI_UNLOCK;
+    uint256 private constant MAXIMUM_LEVEL = 8;
     string private SLASH = "/";
     string private FORGE_COST = "Forging cost";
     string private NOT_ENABLED = "Cannot forge: Not enabled";
 
     mapping(uint256 => NFTData) private dataMap;
     mapping(address => uint32[MAXIMUM_LEVEL]) private levelBalances;
-    mapping(uint64 => GroupData[MAXIMUM_LEVEL - 1]) private groupData; // 1 smaller because level zero isn't represented
+    mapping(uint256 => GroupData[MAXIMUM_LEVEL - 1]) private groupData; // 1 smaller because level zero isn't represented
     mapping(address => NFTData[]) private unclaimedBounties;
-    mapping(uint64 => GroupTotals) private groupTotals;
-    mapping(uint128 => GroupTotals) private groupsOfThisSize;
+    mapping(uint256 => GroupTotals) private groupTotals;
+    mapping(uint256 => GroupTotals) private groupsOfThisSize;
 
     uint64[MAXIMUM_LEVEL] private interestBonuses;
     uint96 private elementSize;
@@ -43,8 +42,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     int256 public elementMintCost;
     uint256 public forgeCost;
 
-    constructor(address manager_) ERC721("Long Tail Social NFT", "LTSNFT") {
+    constructor(address manager_, bytes32 auxUriUnlock) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);
+        AUX_URI_UNLOCK = auxUriUnlock;
 
         interestBonuses[0] = 32768;
         for(uint256 i = 1;i < MAXIMUM_LEVEL;i++) {
@@ -356,8 +356,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
 
         // check constraints
         // ownerOf takes care of checking that the ID has been minted
-        require(ownerOf(templateId) == _msgSender(), INVALID_INPUT);
-        require(ownerOf(materialId) == _msgSender(), INVALID_INPUT);
+        require(ownerOf(templateId) == _msgSender(), NOT_APPROVED);
+        require(ownerOf(materialId) == _msgSender(), NOT_APPROVED);
         require(highestDefinedGroup > 0, NOT_ENABLED);
         require(forgedItem.level < MAXIMUM_LEVEL - 1, NOT_ENABLED);
         require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);
@@ -374,7 +374,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
         }
         _burn(templateId);
         _burn(materialId);
-
 
         // upgrade the NFT
         if (forgedItem.level == 0) {
@@ -480,9 +479,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
         }
     }
 
-    function _recoverSigner(bytes32 message, bytes memory _signature) public pure returns (address)
-    {
-        require(_signature.length == 65, "Signature is an incorrect length");
+    function _recoverSigner(bytes32 message, bytes memory _signature) private pure returns (address) {
+        require(_signature.length == 65, "Signature is invalid");
 
         bytes32 r; 
         bytes32 s;
@@ -506,16 +504,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
             v := byte(0, mload(add(_signature, 96)))
         }
 
-        //return ecrecover(AUX_URI_UNLOCK, v, r, s);
         return ecrecover(message, v, r, s);
-    }
-
-    // test function
-    function getEthSignedMessageHash(bytes32 _messageHash) public pure returns (bytes32) {
-        /*
-        Signature is produced by signing a keccak256 hash with the following format:
-        "\x19Ethereum Signed Message\n" + len(msg) + msg
-        */
-        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash));
     }
 }
