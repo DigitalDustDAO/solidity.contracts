@@ -8,17 +8,25 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 interface ISocialTokenNFT {
     
     struct NFTData {
-        uint8   level;
-        uint112 group;
-        uint104 index;
-        uint32  salt;
+        uint8  level;
+        uint64 group;
+        uint96 index;
+        uint32 salt;
+        uint56 padding;
     }
 
     struct GroupData {
-        uint16  uriIndex;
-        uint32  salt;
-        uint104 size;
-        uint104 current;
+        uint24 uriIndex;
+        uint96 size;
+        uint96 current;
+        bool   auxEnabled;
+        uint32 salt;
+    }
+
+    struct GroupTotals {
+        uint128 count;
+        uint64 front;
+        uint64 back;
     }
 
     event RewardIssued (
@@ -30,13 +38,13 @@ interface ISocialTokenNFT {
     event GroupSizeChanged (
         uint8 indexed level,
         uint112 indexed group,
-        uint104 oldSize,
-        uint104 newSize
+        uint96 oldSize,
+        uint96 newSize
     );
 
-    event ForgeCostSet (
-        uint256 costForElementForge,
-        uint256 costForUpgradeForge
+    event OwnershipTransferred (
+        address indexed previousOwner, 
+        address indexed newOwner
     );
 
     // Manager only function
@@ -44,19 +52,18 @@ interface ISocialTokenNFT {
 
     // Economy adjustment functions
     function transferOwnership(address newOwner) external;
-    function setInterestBonus(uint256 level, uint64 newBonus) external;
+    function setInterestBonus(uint8 level, uint64 newBonus) external;
     function setForgeValues(uint256 newElementCost, uint256 newForgeCost) external;
-    function setURIs(uint16 index, string memory newURI, string memory newAuxURI) external;
+    function setURIs(uint24 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions
-    function setGroupSizes(uint112 group, uint104[] memory sizes, uint16[] memory uriIndexes, uint32[] memory salts) external;
-    function setAuxStatusForGroup(uint112 group, bool[] memory enabledForLevel) external;
-    function resizeElementLibarary(uint104 size) external;
+    function setGroupData(uint64 group, uint96[] memory sizes, bool[] memory auxVersionEnabled, uint24[] memory uriIndexes, uint32[] memory salts) external;
+    function resizeElementLibarary(uint96 size) external;
     function awardBounty(address recipient, uint256 tokenReward, NFTData[] memory nftAwards) external;
 
     // Public views
     function interestBonus(address account) external view returns(uint64);
-    function getTokenInfo(uint256 tokenId) external view returns(NFTData memory info);
-    function getBaseURIsByIndex(uint16 index) external view returns(string memory baseURI, string memory auxURI);
+    function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint96 index);
+    function getURIsByIndex(uint24 index) external view returns(string memory baseURI, string memory auxURI);
     function getClaimableBountyCount(address account) external view returns(uint256 number);
 }

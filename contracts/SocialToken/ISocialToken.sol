@@ -3,6 +3,20 @@
 pragma solidity 0.8.11;
 
 interface ISocialToken {
+
+    struct StakeDataPointer {
+        address owner;
+        uint64 interestRate;
+        uint32 index;
+    }
+
+    struct StakeData {
+        uint64 start;
+        uint64 end;
+        uint128 index;
+        uint256 principal;
+    }
+    
     event Staked (
         address indexed account,
         uint64 indexed duration,
@@ -29,19 +43,6 @@ interface ISocialToken {
         int256 amount,
         string explination
     );
-
-    struct StakeDataPointer {
-        address owner;
-        uint64 interestRate;
-        uint32 index;
-    }
-
-    struct StakeData {
-        uint64 start;
-        uint64 end;
-        uint128 index;
-        uint256 principal;
-    }
 
     function setManager(address newManager, bool startInterestAdjustment) external;
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external;
