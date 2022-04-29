@@ -33,7 +33,7 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
-    // Define strings as constants to reduce contract size
+    // Define strings here to reduce contract size
     string internal NON_EXISTANT   = "Query for nonexistent token";
     string internal NOT_APPROVED   = "Caller not approved for action";
     string internal INVALID_INPUT  = "Input is not valid"; 

@@ -18,7 +18,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     string[] private baseTokenURIs;
     string[] private auxTokenURIs;
 
-    bytes32 private constant AUX_URI_UNLOCK = 0x556e6c6f636b2072756c652033342066756e6374696f6e616c69747900000000;
+    //bytes32 private constant AUX_URI_UNLOCK = 0x556e6c6f636b2072756c652033342066756e6374696f6e616c69747900000000;
+    bytes32 private constant AUX_URI_UNLOCK = 0x180d9267f8f17c313c9b13ca786ddb570e4b8bf845ccaf6eeb3c62b590a5ac9e;
     uint8 private constant MAXIMUM_LEVEL = 8;
     string private SLASH = "/";
     string private FORGE_COST = "Forging cost";
@@ -130,29 +131,29 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
         GroupData memory thisDatum;
 
         for (uint256 i = 0;i <= sizes.length - 1;i++) {
-            if (groupData[group][i].size != sizes[i]) {
-                thisDatum = groupData[group][i];
+            thisDatum.size = sizes[i];
 
-                thisDatum.size = sizes[i];
+            if (thisDatum.current > thisDatum.size) {
+                thisDatum.current = 0;
+            }
 
-                if (thisDatum.current > thisDatum.size) {
-                    thisDatum.current = 0;
-                }
+            if (uriIndexes.length > i) {
+                thisDatum.uriIndex = uriIndexes[i];
+            }
 
-                if (uriIndexes.length > i) {
-                    thisDatum.uriIndex = uriIndexes[i];
-                }
+            if (auxVersionEnabled.length > i) {
+                thisDatum.auxEnabled = auxVersionEnabled[i];
+            }
 
-                if (auxVersionEnabled.length > i) {
-                    thisDatum.auxEnabled = auxVersionEnabled[i];
-                }
+            if (salts.length > i) {
+                thisDatum.salt = salts[i];
+            }
 
-                if (salts.length > i) {
-                    thisDatum.salt = salts[i];
-                }
+            if (groupData[group][i].size != thisDatum.size || groupData[group][i].uriIndex != thisDatum.uriIndex || 
+                    groupData[group][i].auxEnabled != thisDatum.auxEnabled) {
 
+                emit GroupDataChanged(uint8(i + 1), group, groupData[group][i].size, thisDatum.size, thisDatum.uriIndex, thisDatum.auxEnabled);
                 groupData[group][i] = thisDatum;
-                emit GroupSizeChanged(uint8(i + 1), group, groupData[group][i].size, sizes[i]);
             }
         }
 
@@ -166,7 +167,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     function resizeElementLibarary(uint96 size) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
 
-        emit GroupSizeChanged(0, 0, elementSize, size);
+        emit GroupDataChanged(0, 0, elementSize, size, 0, false);
 
         elementSize = size;
         if (elementIndex > size) {

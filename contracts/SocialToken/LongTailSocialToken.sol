@@ -14,8 +14,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     uint256 private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
     uint256 public immutable START_TIME;
 
-    string private constant STAKE_LIMIT = "Stake limit reached";
-    string private constant UNAUTHORIZED = "Not authorized";
+    string private STAKE_LIMIT = "Stake limit reached";
+    string private UNAUTHORIZED = "Not authorized";
 
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;

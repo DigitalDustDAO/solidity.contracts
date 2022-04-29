@@ -22,8 +22,8 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     uint256 public immutable daoId;
 
     uint32 private constant CONTRACT_RIGHTS = 488;
-    string constant private UNAUTHORIZED = "Not authorized";
-    string constant private INVALID_INTERFACE = "Invalid interface";
+    string private UNAUTHORIZED = "Not authorized";
+    string private INVALID_INTERFACE = "Invalid interface";
 
     constructor(address dao_, uint256 daoId_, address tokenAddr, address auxTokenAddr, address nftAddr) {
         daoContract = IDigitalDustDAO(dao_);

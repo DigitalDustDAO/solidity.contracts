@@ -35,11 +35,13 @@ interface ISocialTokenNFT {
         uint128 NFTsRewarded
     );
 
-    event GroupSizeChanged (
+    event GroupDataChanged (
         uint8 indexed level,
         uint112 indexed group,
         uint96 oldSize,
-        uint96 newSize
+        uint96 newSize,
+        uint24 uriIndex,
+        bool auxEnabled
     );
 
     event OwnershipTransferred (

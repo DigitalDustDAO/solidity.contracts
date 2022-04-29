@@ -22,9 +22,9 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     uint256 public immutable daoId;
     uint32 private constant CONTRACT_RIGHTS = 488;
 
-    string constant private UNAUTHORIZED = "Not authorized";
-    string constant private INVALID_INTERFACE = "Invalid interface";
-    string constant private NOT_INITIALIZED = "Contract not enabled";
+    string private UNAUTHORIZED = "Not authorized";
+    string private INVALID_INTERFACE = "Invalid interface";
+    string private NOT_INITIALIZED = "Contract not enabled";
 
     bool private initialized;
 

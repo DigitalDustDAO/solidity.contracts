@@ -14,8 +14,6 @@ import "../SocialToken/ISocialToken.sol";
 
 contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
-    string private constant UNAUTHORIZED = "Not authorized";
-    
     IUniswapV2Router02 immutable public uniV2RouterAddress;
     IUniswapV2Pair immutable public pairAddress;
     ISocialTokenManager public manager;
@@ -48,7 +46,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     }
 
     function setManager(address newManager) external {
-        require(_msgSender() == address(manager), UNAUTHORIZED);
+        require(_msgSender() == address(manager), "Not authorized");
 
         manager = ISocialTokenManager(newManager);
         manager.registerLiquidityPool();
