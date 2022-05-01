@@ -35,4 +35,7 @@ interface IDigitalDustDAO {
     function setPenalty(address account, uint256 id, uint128 penalty) external;
     function setRights(address account, uint256 id, uint128 rights) external;
     function startProject(address owner, uint256 id, uint256 amount) external;
+
+    function getProjectStarted(uint256 id) external view returns(bool);
+    function getProjectTotalShares(uint256 id) external view returns(uint256);
 }

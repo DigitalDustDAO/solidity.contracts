@@ -9,9 +9,9 @@ import "../SocialToken/ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC20 {
 
-    uint256 public constant MAXIMUM_STAKE_DAYS = 5844;
-    uint256 public constant MININUM_STAKE_DAYS = 14;
-    uint256 private constant MININUM_STAKE_AMOUNT = 1000000000000; // = 0.0000001 token
+    uint256 private maximumStakeDays;
+    uint256 private mininumStakeDays;
+    uint256 private mininumStakeAmount;
     uint256 public immutable START_TIME;
 
     string private STAKE_LIMIT = "Stake limit reached";
@@ -35,7 +35,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         manager = ISocialTokenManager(manager_);
 
-        START_TIME = block.timestamp - (block.timestamp % 1 days);
+        START_TIME = block.timestamp - 2 hours - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
 
         // Pick some very low default values
@@ -44,6 +44,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         quadraticInterestBonus = 10000000;
         rewardPerMiningTask = 10**18;
         miningGasReserve = 1500;
+
+        mininumStakeAmount = 312500000000000000; // 1/32th of one token
+        mininumStakeDays = 7;
+        maximumStakeDays = 5844; // 16 years
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
@@ -56,7 +60,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             lastInterestAdjustment = 0;
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint64 miningReward, uint64 miningReserve) external {
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         baseInterestRate = base;
@@ -66,7 +70,15 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         miningGasReserve = miningReserve;
     }
 
-    function stake(uint256 amount, uint16 numberOfDays) public returns(uint32) {
+    function setContractConstraints(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+
+        mininumStakeAmount = minStakeAmount;
+        mininumStakeDays = minStakeDays;
+        maximumStakeDays = maxStakeDays;
+    }
+
+    function stake(uint256 amount, uint256 numberOfDays) public returns(uint32) {
         // cache refrence variables
         address stakeAccount = _msgSender();
         uint256 today = getCurrentDay();
@@ -75,14 +87,12 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
         // ensure inputs are not out of range 
-        require(amount >= MININUM_STAKE_AMOUNT, "Stake too small");
+        require(amount >= mininumStakeAmount, "Stake too small");
         require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
-        require(numberOfDays <= MAXIMUM_STAKE_DAYS, "Stake too long");
-        require(numberOfDays >= MININUM_STAKE_DAYS, "Stake too short");
+        require(numberOfDays <= maximumStakeDays, "Stake too long");
+        require(numberOfDays >= mininumStakeDays, "Stake too short");
         require(accountIndex <= type(uint32).max, STAKE_LIMIT);
         require(endDayIndex <= type(uint128).max, STAKE_LIMIT);
-
-        // reduce the amount 
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
@@ -103,7 +113,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         emit Staked(
             stakeAccount,
-            numberOfDays,
+            uint64(numberOfDays),
             uint64(endDay),
             amount,
             stakesByEndDay[endDay][endDayIndex].interestRate,
@@ -202,7 +212,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
     }
 
-    function getNumMiningTasks() public virtual view returns(uint256) {
+    function getNumMiningTasks() public view returns(uint256) {
         uint256 today = getCurrentDay();
         uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
         for (uint256 i = lastCompletedDistribution;i <= today;i++) {
@@ -211,18 +221,21 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         return numTasks;
     }
 
-    function getContractInterestRates() public virtual view returns(uint64, uint64, uint64, uint64, uint64) {
+    function getContractInterestRates() public view returns(uint64, uint64, uint64, uint256, uint256) {
         return (
             uint64(baseInterestRate),
             uint64(linearInterestBonus),
             uint64(quadraticInterestBonus),
-            uint64(rewardPerMiningTask),
-            uint64(miningGasReserve)
+            rewardPerMiningTask,
+            miningGasReserve
         );
     }
 
+    function getContractConstraints() public view returns(uint256, uint64, uint64) {
+        return (mininumStakeAmount, uint64(mininumStakeDays), uint64(maximumStakeDays));
+    }
 
-    function getStakeValues (address account, uint32 id) public virtual view returns(uint64, uint64, uint64, uint256) {
+    function getStakeValues (address account, uint32 id) public view returns(uint64, uint64, uint64, uint256) {
         return (
             stakesByAccount[account][id].start,
             stakesByAccount[account][id].end,
@@ -235,38 +248,34 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         return (block.timestamp - START_TIME) / 1 days;
     }
 
-    // Need to test how much gas this function uses.
-    function getVotingPower(address account) external view returns(uint256) {
-        uint256 votingPower = 0;
+    function getVotingPower(address account, uint64 minValidStakeLength, uint32[] memory stakeIds) public view returns(uint256 votingPower) {
         StakeData storage thisStake;
-        uint256 finalDepth = stakesByAccount[account].length <= 128 ? 0 : stakesByAccount[account].length - 128;
 
-        for(uint256 i = stakesByAccount[account].length - 1; i > finalDepth; i--) {
-            thisStake = stakesByAccount[account][i];
-            if (thisStake.principal > 0) {
-                votingPower += (_votingWeight(thisStake.start, thisStake.end, getCurrentDay()) 
-                    * _fullInterest(thisStake.start - thisStake.end,  stakesByEndDay[thisStake.end][thisStake.index].interestRate, thisStake.principal));
+        for(uint256 i = 0; i < stakeIds.length; i++) {
+            thisStake = stakesByAccount[account][stakeIds[i]];
+            if (thisStake.principal > 0 && thisStake.end - thisStake.start >= minValidStakeLength) {
+                votingPower += (_fullInterest(_votingWeight(thisStake.start, thisStake.end, getCurrentDay()),  
+                        stakesByEndDay[thisStake.end][thisStake.index].interestRate, thisStake.principal));
             }
         }
-
-        return votingPower;
     }
 
     // This function gets the interest that will be earned if you withdraw a stake on a particular day.
     //  If you withdraw the same day you stake then you don't get any penality.
     function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) 
-            public pure returns(int256 interest) {
+            public pure returns(int256) {
         uint256 halfStakeLength = (end - start) / 2;
         uint256 timeStaked = dayOfWithdrawal - start;
+        uint256 full = _fullInterest(end - start, interestRate, principal);
 
-        if (timeStaked == 0) {
-            interest = 0;
+        if (dayOfWithdrawal == start) {
+            return 0;
         }
         else if (timeStaked < halfStakeLength) {
-            interest = int256((_fullInterest(end - start, interestRate, principal) * timeStaked) / halfStakeLength) * -1;
+            return int256((full * timeStaked) / halfStakeLength) * -1;
         }
         else {
-            interest = int256((_fullInterest(end - start, interestRate, principal) * (timeStaked - halfStakeLength)) / halfStakeLength);
+            return int256((full * (timeStaked - halfStakeLength)) / halfStakeLength);
         }
     }
 
@@ -279,7 +288,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                 (quadraticInterestBonus * numberOfDays * numberOfDays) +
                 manager.getNftContract().interestBonus(account)
             );
-            // cap the value at what can be held in a uint64 and downcast it into a uint32
+            // cap the value at what can be held in a uint64
             return interest > type(uint64).max ? type(uint64).max : uint64(interest);
         }
     }
@@ -288,13 +297,11 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         if (!mining) { manager.authorizeTx(from, to, amount); }
     }
 
-    function _votingWeight(uint256 start, uint256 end, uint256 currentDay) private pure returns(uint256){
-        if (currentDay - start <= (end - start) / 2) {
-            return (currentDay - start) * 2;
-        }
-        else {
-            return ((end - start) - (currentDay - start)) * 2;
-        }
+    function _votingWeight(uint256 start, uint256 end, uint256 current) private pure returns(uint256) {
+        uint256 totalDays = end - start;
+        uint256 daysMature = current - start;
+
+        return daysMature <= totalDays / 2 ? daysMature : totalDays - daysMature;
     }
 
     function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {

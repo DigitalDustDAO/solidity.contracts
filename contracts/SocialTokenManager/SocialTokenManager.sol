@@ -16,7 +16,6 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     ISocialToken private immutable tokenContract;
     ISocialTokenNFT private immutable nftContract;
     IERC20 private immutable auxTokenContract;
-
     ISocialTokenLiquidityPool[] private liquidityPools;
 
     uint256 public immutable daoId;
@@ -25,9 +24,9 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     string private UNAUTHORIZED = "Not authorized";
     string private INVALID_INTERFACE = "Invalid interface";
 
-    constructor(address dao_, uint256 daoId_, address tokenAddr, address auxTokenAddr, address nftAddr) {
-        daoContract = IDigitalDustDAO(dao_);
-        daoId = daoId_;
+    constructor(address daoAddr, uint256 daoIndex, address tokenAddr, address nftAddr, address auxTokenAddr) {
+        daoContract = IDigitalDustDAO(daoAddr);
+        daoId = daoIndex;
         tokenContract = ISocialToken(tokenAddr);
         nftContract = ISocialTokenNFT(nftAddr);
         auxTokenContract = IERC20(auxTokenAddr);
@@ -40,7 +39,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     }
 
     // Time to pass to a new manager
-    function upgrade(address newManager, address payable sendTo, bool startInterestAdjustment) public {
+    function upgrade(address payable newManager, bool startInterestAdjustment) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
         require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
 
@@ -50,7 +49,11 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
             liquidityPools[i].setManager(newManager);
         }
 
-        selfdestruct(sendTo);
+        selfdestruct(newManager);
+    }
+
+    function upgrade(address payable newManager) public {
+        upgrade(newManager, false);
     }
 
     function registerLiquidityPool() external {
@@ -70,12 +73,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
     }
 
     function hasAuxToken(address account) public view returns(bool) {
-        if (address(auxTokenContract) == address(0)) {
-            return false;
-        }
-        else {
-            return auxTokenContract.balanceOf(account) > 0;
-        }
+        return address(auxTokenContract) == address(0) ? true : auxTokenContract.balanceOf(account) > 0;
     }
 
     function getDaoContract() public view returns(IDigitalDustDAO) {
@@ -92,10 +90,10 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Council) {
-            require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.accessOf(account, daoId) >= 500, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Maintainance) {
             require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);

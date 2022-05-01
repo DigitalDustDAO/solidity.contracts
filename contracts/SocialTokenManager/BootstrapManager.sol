@@ -16,7 +16,6 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     ISocialToken private tokenContract;
     ISocialTokenNFT private nftContract;
     IERC20 private auxTokenContract;
-
     ISocialTokenLiquidityPool[] private liquidityPools;
 
     uint256 public immutable daoId;
@@ -28,9 +27,9 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
 
     bool private initialized;
 
-    constructor(address dao_, uint256 daoId_) {
-        daoContract = IDigitalDustDAO(dao_);
-        daoId = daoId_;
+    constructor(address daoAddr, uint256 daoIndex) {
+        daoContract = IDigitalDustDAO(daoAddr);
+        daoId = daoIndex;
     }
 
     /**
@@ -56,7 +55,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
     }
 
     // Time to pass to a new manager
-    function upgrade(address newManager, address payable sendTo) public {
+    function upgrade(address payable newManager) public {
         this.authorize(_msgSender(), Sensitivity.Elder);
         require(initialized, NOT_INITIALIZED);
         require(ISocialTokenManager(newManager).supportsInterface(type(ISocialTokenManager).interfaceId), INVALID_INTERFACE);
@@ -70,7 +69,7 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         }
 
         initialized = false;
-        selfdestruct(sendTo);
+        selfdestruct(newManager);
     }
 
     function setAuxTokenContract(address contractAddress) public {
@@ -115,10 +114,10 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Council) {
-            require(daoContract.accessOf(account, daoId) >= 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
-            require(daoContract.accessOf(account, daoId) >= 500, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 500, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Maintainance) {
             require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
