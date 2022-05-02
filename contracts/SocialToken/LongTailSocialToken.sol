@@ -8,19 +8,13 @@ import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC20 {
-
-    uint256 private maximumStakeDays;
-    uint256 private mininumStakeDays;
-    uint256 private mininumStakeAmount;
-    uint256 public immutable START_TIME;
-
-    string private STAKE_LIMIT = "Stake limit reached";
-    string private UNAUTHORIZED = "Not authorized";
-
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
     mapping(address => StakeData[]) private stakesByAccount;
 
     ISocialTokenManager public manager;
+
+    string private STAKE_LIMIT = "Stake limit reached";
+    string private UNAUTHORIZED = "Not authorized";
 
     bool private mining;
     uint256 internal lastInterestAdjustment;
@@ -30,6 +24,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     uint256 internal baseInterestRate;
     uint256 internal linearInterestBonus;
     uint256 internal quadraticInterestBonus;
+    uint256 internal maximumStakeDays;
+    uint256 internal mininumStakeDays;
+    uint256 internal mininumStakeAmount;
+    uint256 internal immutable START_TIME;
 
     constructor(address manager_) ERC20("Long Tail Social Token", "LTST") {
 
@@ -125,7 +123,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     function unstake(uint32 stakeNumber) public virtual {
         // cache refrence variables
         address stakeAccount = _msgSender();
-        StakeData storage myStake = stakesByAccount[stakeAccount][stakeNumber];
+        StakeData memory myStake = stakesByAccount[stakeAccount][stakeNumber];
 
         // ensure outputs within range 
         require(myStake.principal > 0);
@@ -160,15 +158,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
 
         mining = true;
-        uint256 tasksCompleted = 0;
+        uint256 tasksCompleted;
         uint256 interest;
         StakeDataPointer storage currentStake;
         StakeData storage accountStake;
 
         // adjust interest (if needed)
         if (lastInterestAdjustment < getCurrentDay()) {
-            manager.adjustInterest();
-            tasksCompleted++;
+            tasksCompleted = manager.adjustInterest();
         }
 
         // reward ended stakes to people

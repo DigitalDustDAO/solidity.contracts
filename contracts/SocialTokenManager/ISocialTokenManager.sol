@@ -22,7 +22,6 @@ interface ISocialTokenManager is IERC165 {
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
     function hasAuxToken(address account) external view returns(bool);
-
     
 
     //permission and control
@@ -31,5 +30,5 @@ interface ISocialTokenManager is IERC165 {
     function unregisterLiquidityPool(address account) external;
     function authorize(address source, Sensitivity level) external view;
     function authorizeTx(address, address, uint256) external view;
-    function adjustInterest() external view;
+    function adjustInterest() external view returns(uint256);
 }

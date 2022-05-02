@@ -9,8 +9,8 @@ import "../DigitalDustDAO/IDigitalDustDAO.sol";
 
 contract DigitalDustDAO is IDigitalDustDAO, Context, ERC1155 {
     uint128 constant private GRANT_RIGHTS  = 200;
+    uint128 constant private APPLY_PENALTY = 300;
     uint128 constant private REVOKE_RIGHTS = 400;
-    uint128 constant private APPLY_PENALTY = 400;
     uint128 constant private START_PROJECT = 500;
 
     string private INSUFFICIENT_RIGHTS = "Caller does not have enough rights";
@@ -78,13 +78,13 @@ contract DigitalDustDAO is IDigitalDustDAO, Context, ERC1155 {
     }
 
     function consumeAccess(address account, uint256 id, uint128 amount) external returns(uint128) {
-        require(rightsOf(_msgSender(), id) >= REVOKE_RIGHTS, INSUFFICIENT_RIGHTS);
-        require(rightsOf(account, id) >= amount && rightsOf(account, id) <= 100, "Not authorized");
+        require(rightsOf(_msgSender(), id) >= APPLY_PENALTY, INSUFFICIENT_RIGHTS);
+        require(access[id][account].rights >= access[id][account].penalty + amount);
 
-        access[id][account].rights -= amount;
-        emit SetRights(id, _msgSender(), account, access[id][account].rights);
+        access[id][account].penalty += amount;
+        emit SetPenalty(id, _msgSender(), account, access[id][account].penalty);
 
-        return access[id][account].rights;
+        return accessOf(account, id);
     }
 
     function setRights(address account, uint256 id, uint128 rights) public {

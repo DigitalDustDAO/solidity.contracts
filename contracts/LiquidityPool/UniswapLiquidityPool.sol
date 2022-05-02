@@ -21,9 +21,9 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint256 private immutable START_TIME;
 
     mapping(address => Stake) private stakes;
-    uint256 public LPToDistribute;
-    uint128 public interestRate;
-    uint64 public vestingPeriod;
+    uint256 private LPToDistribute;
+    uint128 private interestRate;
+    uint64 private vestingPeriod;
     bool private funded;
 
     // the normal router address is 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
@@ -93,11 +93,18 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         today = uint64((block.timestamp - START_TIME) / 1 days);
     }
 
-    function getStakeData(address account) public view returns(uint192 principal, uint256 uncollectedRewards) {
+    function getStakeData(address account) public view returns(uint192 principal, uint256 uncollectedRewards, uint64 vestingDaysRemaining) {
         Stake storage userStake = stakes[account];
+        uint64 today = getCurrentDay();
 
         principal = userStake.principal;
-        uncollectedRewards = getCurrentDay() <= userStake.startDay ? 0 : _calculateInterest(userStake.principal, interestRate, getCurrentDay() - userStake.startDay);
+        vestingDaysRemaining = today >= userStake.startDay ? 0 : userStake.startDay - today;
+        uncollectedRewards = today <= userStake.startDay ? 0 : _calculateInterest(userStake.principal, interestRate, today - userStake.startDay);
+    }
+
+    function getContractState() public view returns(uint128 currentInterestRate, uint64 currentVestingPeriod) {
+        currentInterestRate = interestRate;
+        currentVestingPeriod = vestingPeriod;
     }
 
     // User functions

@@ -4,7 +4,7 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "../ERC721.sol";
+import "../SocialTokenNFT/ERC721.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 import "../SocialToken/ISocialToken.sol";
@@ -37,10 +37,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
     uint128 internal smallestGroupSize;
     uint64 internal highestDefinedGroup;
     address public owner;
-
     uint256 public tokenCount;
-    int256 public elementMintCost;
-    uint256 public forgeCost;
+    int256 private elementMintCost;
+    uint256 private forgeCost;
 
     constructor(address manager_, bytes32 auxUriUnlock) ERC721("Long Tail Social NFT", "LTSNFT") {
         manager = ISocialTokenManager(manager_);
@@ -274,6 +273,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
 
     function getClaimableBountyCount(address account) public view returns(uint256) {
         return unclaimedBounties[account].length;
+    }
+
+    function getForgeValues() public view returns(int256 costToMintElements, uint256 costToForgeUpgrades) {
+        costToMintElements = elementMintCost;
+        costToForgeUpgrades = forgeCost;
     }
 
     /**
