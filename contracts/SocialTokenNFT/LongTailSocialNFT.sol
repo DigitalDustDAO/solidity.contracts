@@ -194,10 +194,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721 {
      * Public views
      */
     function interestBonus(address account) external view returns(uint64) {
-        for (uint256 level = MAXIMUM_LEVEL - 1;level >= 0;level--)
-        {
-            if (levelBalances[account][level] > 0) {
-                return interestBonuses[level];
+        for (uint256 level = MAXIMUM_LEVEL;level > 0;level--) {
+            if (levelBalances[account][level - 1] > 0) {
+                return interestBonuses[level - 1];
             }
         }
 

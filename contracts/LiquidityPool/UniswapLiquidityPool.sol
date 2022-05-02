@@ -97,7 +97,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         Stake storage userStake = stakes[account];
 
         principal = userStake.principal;
-        uncollectedRewards = _calculateInterest(userStake.principal, interestRate, getCurrentDay() - userStake.startDay);
+        uncollectedRewards = getCurrentDay() <= userStake.startDay ? 0 : _calculateInterest(userStake.principal, interestRate, getCurrentDay() - userStake.startDay);
     }
 
     // User functions

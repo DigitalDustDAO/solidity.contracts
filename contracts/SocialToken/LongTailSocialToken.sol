@@ -45,7 +45,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         rewardPerMiningTask = 10**18;
         miningGasReserve = 1500;
 
-        mininumStakeAmount = 312500000000000000; // 1/32th of one token
+        mininumStakeAmount = 3125000000000000; // 1/32th of one token
         mininumStakeDays = 7;
         maximumStakeDays = 5844; // 16 years
     }
@@ -80,15 +80,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function stake(uint256 amount, uint256 numberOfDays) public returns(uint32) {
         // cache refrence variables
-        address stakeAccount = _msgSender();
         uint256 today = getCurrentDay();
         uint256 endDay = today + numberOfDays;
-        uint256 accountIndex = stakesByAccount[stakeAccount].length;
+        uint256 accountIndex = stakesByAccount[_msgSender()].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
         // ensure inputs are not out of range 
         require(amount >= mininumStakeAmount, "Stake too small");
-        require(balanceOf(stakeAccount) >= amount, "Insufficient balance");
+        require(balanceOf(_msgSender()) >= amount, "Insufficient balance");
         require(numberOfDays <= maximumStakeDays, "Stake too long");
         require(numberOfDays >= mininumStakeDays, "Stake too short");
         require(accountIndex <= type(uint32).max, STAKE_LIMIT);
@@ -96,12 +95,12 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         // populate stake data
         stakesByEndDay[endDay].push(StakeDataPointer(
-            stakeAccount,
-            calculateInterestRate(stakeAccount, numberOfDays),
+            _msgSender(),
+            calculateInterestRate(_msgSender(), numberOfDays),
             uint32(accountIndex)
         ));
 
-        stakesByAccount[stakeAccount].push(StakeData(
+        stakesByAccount[_msgSender()].push(StakeData(
             uint64(today),
             uint64(endDay),
             uint128(endDayIndex),
@@ -109,10 +108,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         ));
 
         // send the stake to this contract
-        _transfer(stakeAccount, address(this), amount);
+        _transfer(_msgSender(), address(this), amount);
 
         emit Staked(
-            stakeAccount,
+            _msgSender(),
             uint64(numberOfDays),
             uint64(endDay),
             amount,
