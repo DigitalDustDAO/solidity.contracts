@@ -233,7 +233,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             return (false, tokenURI(tokenId));
         }
 
-        return (true, string(abi.encodePacked(auxURI, keccak256(abi.encode(tokenData)))));
+        return (true, string(abi.encodePacked(auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex], keccak256(abi.encode(tokenData)))));
     }
 
     function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
