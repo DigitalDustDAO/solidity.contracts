@@ -23,12 +23,6 @@ interface ISocialTokenNFT {
         uint32 salt;
     }
 
-    struct GroupTotals {
-        uint128 count;
-        uint64 front;
-        uint64 back;
-    }
-
     event RewardIssued (
         address indexed recipiant,
         uint128 tokensRewarded,

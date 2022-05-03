@@ -218,7 +218,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             currentTasks = currentTasks + stakesByEndDay[i].length;
         }
         
-        upcomingTasks = (lastInterestAdjustment <= today ? 1 : 0) + stakesByEndDay[today + 1].length;
+        upcomingTasks = stakesByEndDay[today + 1].length + lastInterestAdjustment <= today ? 1 : 0;
     }
 
     function getContractInterestRates() public view returns(uint64, uint64, uint64, uint256, uint256) {
