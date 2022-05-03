@@ -34,7 +34,7 @@ interface ISocialToken {
 
     event MiningReward (
         address indexed account,
-        uint64 tasksCompleted,
+        uint96 tasksCompleted,
         uint256 reward
     );
 
@@ -49,6 +49,7 @@ interface ISocialToken {
     function setContractConstraints(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) external;
     function award(address account, int256 amount, string memory explanation) external;
     function getVotingPower(address account, uint64 minValidStakeLength, uint32[] memory stakeIds) external view returns(uint256 votingPower);
+    function getNumMiningTasks() external view returns(uint256 currentTasks, uint256 upcomingTasks);
     function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) 
         external pure returns(int256 interest);
 }

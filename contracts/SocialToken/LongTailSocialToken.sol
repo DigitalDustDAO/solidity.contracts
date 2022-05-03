@@ -60,6 +60,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        require(miningReward > 0, "Invalid input"); // this would cause a divide by zero error inside the mine function.
 
         baseInterestRate = base;
         linearInterestBonus = linear;
@@ -158,18 +159,20 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
 
         mining = true;
-        uint256 tasksCompleted;
+        uint256 miningReward;
         uint256 interest;
+        uint256 today = getCurrentDay();
         StakeDataPointer storage currentStake;
         StakeData storage accountStake;
 
         // adjust interest (if needed)
-        if (lastInterestAdjustment < getCurrentDay()) {
-            tasksCompleted = manager.adjustInterest();
+        if (lastInterestAdjustment < today) {
+            miningReward = manager.adjustInterest();
+            lastInterestAdjustment = today;
         }
 
         // reward ended stakes to people
-        for (uint256 i = lastCompletedDistribution;i <= getCurrentDay();i++) {
+        for (uint256 i = lastCompletedDistribution;i <= today;i++) {
             while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
                 currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
                 if (currentStake.owner != address(0)) {
@@ -180,16 +183,16 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                     _mint(currentStake.owner, interest);
 
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
-                    tasksCompleted++;
+                    miningReward += rewardPerMiningTask;
                 }
 
                 stakesByEndDay[i].pop();
             }
         }
 
-        if (tasksCompleted > 0) {
-            _mint(_msgSender(), rewardPerMiningTask * tasksCompleted);
-            emit MiningReward(_msgSender(), uint64(tasksCompleted), rewardPerMiningTask * tasksCompleted);
+        if (miningReward > 0) {
+            _mint(_msgSender(), miningReward);
+            emit MiningReward(_msgSender(), uint96(miningReward / rewardPerMiningTask), miningReward);
         }
 
         mining = false;
@@ -208,13 +211,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
     }
 
-    function getNumMiningTasks() public view returns(uint256) {
+    function getNumMiningTasks() public view returns(uint256 currentTasks, uint256 upcomingTasks) {
         uint256 today = getCurrentDay();
-        uint256 numTasks = lastInterestAdjustment < today ? 1 : 0;
+        currentTasks = lastInterestAdjustment < today ? 1 : 0;
         for (uint256 i = lastCompletedDistribution;i <= today;i++) {
-            numTasks = numTasks + stakesByEndDay[i].length;
+            currentTasks = currentTasks + stakesByEndDay[i].length;
         }
-        return numTasks;
+        
+        upcomingTasks = (lastInterestAdjustment <= today ? 1 : 0) + stakesByEndDay[today + 1].length;
     }
 
     function getContractInterestRates() public view returns(uint64, uint64, uint64, uint256, uint256) {
