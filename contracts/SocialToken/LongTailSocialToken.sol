@@ -205,7 +205,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         if (amount < 0) {
             _burn(account, uint256(-amount));
         }
-        else
+        else {
             _mint(account, uint256(amount));
         }
 
