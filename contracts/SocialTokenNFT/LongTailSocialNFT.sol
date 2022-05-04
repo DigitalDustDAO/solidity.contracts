@@ -357,7 +357,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         require(ownerOf(materialId) == _msgSender(), NOT_APPROVED);
         require(highestDefinedGroup > 0, NOT_ENABLED);
         require(forgedItem.level < MAXIMUM_LEVEL - 1, NOT_ENABLED);
-        require(groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);
+        require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);
         require(material.level == forgedItem.level, INVALID_INPUT);
 
         // attempt to deduct fuel cost
