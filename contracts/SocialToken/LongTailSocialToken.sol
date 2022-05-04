@@ -199,16 +199,17 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     }
 
     function award(address account, int256 amount, string memory explanation) virtual external {
+        if (amount == 0) return;
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.AwardableContract);
 
         if (amount < 0) {
             _burn(account, uint256(-amount));
-            emit AwardToAddress(account, amount, explanation);
         }
-        else if (amount > 0) {
+        else
             _mint(account, uint256(amount));
-            emit AwardToAddress(account, amount, explanation);
         }
+
+        emit AwardToAddress(account, amount, explanation);
     }
 
     function getNumMiningTasks() public view returns(uint256 currentTasks, uint256 upcomingTasks) {

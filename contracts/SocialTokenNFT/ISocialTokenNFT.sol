@@ -54,7 +54,7 @@ interface ISocialTokenNFT {
 
     // Council functions
     function setGroupData(uint64 group, uint96[] memory sizes, bool[] memory auxVersionEnabled, uint24[] memory uriIndexes, uint32[] memory salts) external;
-    function resizeElementLibarary(uint96 size) external;
+    function setElementLibararySize(uint96 size) external;
     function awardBounty(address recipient, uint256 tokenReward, NFTData[] memory nftAwards) external;
 
     // Public views
