@@ -207,7 +207,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             baseTokenURIs[groupData[dataMap[tokenId].group][dataMap[tokenId].level - 1].uriIndex];
 
         return bytes(baseURI).length == 0 ? "" : string(
-            abi.encodePacked(baseURI, 
+            abi.encodePacked(baseURI, SLASH, 
                 uint256(dataMap[tokenId].level).toString(), SLASH, 
                 uint256(dataMap[tokenId].group).toString(), SLASH,
                 uint256(dataMap[tokenId].index).toString()
@@ -218,7 +218,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     function tokenAuxURI(uint256 tokenId, bytes memory signedMessage) public view virtual returns(bool isDifferent, string memory uri) {
         require(_exists(tokenId), NON_EXISTANT);
 
-        NFTData memory tokenData = dataMap[tokenId];
+        NFTData storage tokenData = dataMap[tokenId];
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
 
         if (ownerOf(tokenId) != signer || !manager.hasAuxToken(signer) || tokenData.level == 0 
@@ -227,13 +227,15 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
 
         string storage auxURI = auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex];
-        tokenData.salt = groupData[tokenData.group][tokenData.level - 1].salt;
+
+        //tokenData.salt = groupData[tokenData.group][tokenData.level - 1].salt;
 
         if (bytes(auxURI).length == 0) {
             return (false, tokenURI(tokenId));
         }
 
-        return (true, string(abi.encodePacked(auxURI, _toHex(keccak256(abi.encode(tokenData))))));
+        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(_encodeToken(tokenData)))));
+        //return (true, string(abi.encodePacked(auxURI, SLASH, _toHex(keccak256(abi.encode(tokenData))))));
     }
 
     function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
@@ -408,7 +410,16 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
     }
 
-    function _toHex(bytes32 _bytes32) private pure returns (bytes memory) {
+    function _encodeToken(NFTData storage tokenData) private view returns(bytes32) {
+        uint256 total = uint(tokenData.level) << 248;
+        total += uint(tokenData.group) << 184;
+        total += uint(tokenData.index) << 88;
+        total += uint(groupData[tokenData.group][tokenData.level - 1].salt) << 56;
+
+        return bytes32(total);
+    }
+
+    function _toHexString(bytes32 _bytes32) private pure returns (bytes memory) {
         uint8 _f;
         uint8 _l;
         bytes memory bytesArray = new bytes(64);
@@ -417,8 +428,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             _f = uint8(_bytes32[i/2] & 0x0f);
             _l = uint8(_bytes32[i/2] >> 4);
 
-            bytesArray[i]     = _f < 10 ? bytes1(_f + 48) : bytes1(_f + 87);
-            bytesArray[i + 1] = _l < 10 ? bytes1(_l + 48) : bytes1(_l + 87);
+            bytesArray[i]     = _l < 10 ? bytes1(_l + 48) : bytes1(_l + 87);
+            bytesArray[i + 1] = _f < 10 ? bytes1(_f + 48) : bytes1(_f + 87);
         }
         return bytesArray;
     }
