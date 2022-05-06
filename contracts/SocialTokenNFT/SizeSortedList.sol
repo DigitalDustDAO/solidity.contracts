@@ -5,29 +5,29 @@ pragma solidity ^0.8.0;
 abstract contract SizeSortedList {
 
     struct ItemNode {
-        uint64 unused;
         uint64 front;
         uint64 back;
         uint64 count;
-    }
+    } // 64 bits unused
 
-    mapping(uint256 => ItemNode) private itemCounts;
-    mapping(uint256 => ItemNode) private indexOfCounts;
+    mapping(uint256 => ItemNode) internal itemCounts;
+    mapping(uint256 => ItemNode) internal totalOfCounts;
 
     function addItemToSizeList(uint64 itemNumber) internal {
         ItemNode storage countNode = itemCounts[itemNumber];
-        require(countNode.count == 0, "Duplicate item"); // Not an all inclusive test that it doesn't already exist, but enough for a sanity check.
+        require(countNode.count == 0, "Duplicate item"); 
+        // ^ Not an all inclusive test that it doesn't already exist, but enough for a sanity check.
 
         _countNodeInsert(countNode, itemNumber);
-        indexOfCounts[0].count = 0;
+        totalOfCounts[0].count = 0;
     }
 
     function incrementSizeList(uint64 itemNumber) internal {
         ItemNode storage countNode = itemCounts[itemNumber];
 
-        if (indexOfCounts[0].count == countNode.count) {
+        if (totalOfCounts[0].count == countNode.count) {
             if (_countNodeRemove(countNode, itemNumber)) {
-                indexOfCounts[0].count++;
+                totalOfCounts[0].count++;
             }
         }
         else {
@@ -42,37 +42,35 @@ abstract contract SizeSortedList {
         ItemNode storage countNode = itemCounts[itemNumber];
         require(countNode.count > 0, "Cannot reduce below 0 elements");
 
-        if (indexOfCounts[0].count == countNode.count) {
-            if (_countNodeRemove(countNode, itemNumber)) {
-                indexOfCounts[0].count--;
-            }
-        }
-        else {
-            _countNodeRemove(countNode, itemNumber);
+        _countNodeRemove(countNode, itemNumber);
+        countNode.count--;
+        
+        if (countNode.count < totalOfCounts[0].count) {
+            totalOfCounts[0].count = countNode.count;
         }
 
-        countNode.count--;
         _countNodeInsert(countNode, itemNumber);
     }
 
     function getSizeListSmallestEntry() internal view returns(uint64 itemNumber) {
-        itemNumber = indexOfCounts[indexOfCounts[0].count].back;
+        itemNumber = totalOfCounts[totalOfCounts[0].count].back;
     }
 
     function _countNodeRemove(ItemNode storage countNode, uint64 itemNumber) private returns(bool listHasBeenEmptied) {
-        ItemNode storage groupList = indexOfCounts[countNode.count];
+        ItemNode storage totalsNode = totalOfCounts[countNode.count];
 
-        if (groupList.front == itemNumber) {
-            if (groupList.back == itemNumber) {
-                delete(indexOfCounts[countNode.count]);
+        if (totalsNode.front == itemNumber) {
+            if (totalsNode.back == itemNumber) {
+                totalOfCounts[countNode.count].front = 0;
+                totalOfCounts[countNode.count].back = 0;
                 return true;
             }
 
-            groupList.front = countNode.back;
+            totalsNode.front = countNode.back;
             itemCounts[countNode.back].front = countNode.front;
         }
-        else if (groupList.back == itemNumber) {
-            groupList.back = countNode.front;
+        else if (totalsNode.back == itemNumber) {
+            totalsNode.back = countNode.front;
             itemCounts[countNode.front].back = countNode.back;
         }
         else {
@@ -84,20 +82,19 @@ abstract contract SizeSortedList {
     }
 
     function _countNodeInsert(ItemNode storage countNode, uint64 itemNumber) private {
-        ItemNode storage groupList = indexOfCounts[countNode.count];
+        ItemNode storage totalsNode = totalOfCounts[countNode.count];
 
-        if (groupList.front == 0) {
+        if (totalsNode.front == 0) {
             countNode.front = 0;
             countNode.back = 0;
-            groupList.front = itemNumber;
-            groupList.back = itemNumber;
+            totalsNode.front = itemNumber;
+            totalsNode.back = itemNumber;
         }
         else {
-            itemCounts[groupList.front].front = itemNumber;
+            itemCounts[totalsNode.front].front = itemNumber;
             countNode.front = 0;
-            countNode.back = groupList.front;
-            groupList.front = itemNumber;
+            countNode.back = totalsNode.front;
+            totalsNode.front = itemNumber;
         }
     }
-
 }

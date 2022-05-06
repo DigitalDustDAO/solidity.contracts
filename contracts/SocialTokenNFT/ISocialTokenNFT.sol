@@ -10,18 +10,16 @@ interface ISocialTokenNFT {
     struct NFTData {
         uint8  level;
         uint64 group;
-        uint96 index;
-        uint32 salt;
-        uint56 padding;
-    }
+        uint64 index;
+    } // 96 bits unused
 
     struct GroupData {
-        uint24 uriIndex;
-        uint96 size;
-        uint96 current;
+        uint32 uriIndex;
+        uint64 size;
+        uint64 current;
+        uint64 salt;
         bool   auxEnabled;
-        uint32 salt;
-    }
+    } // 24 bits unused
 
     event RewardIssued (
         address indexed recipiant,
@@ -32,15 +30,23 @@ interface ISocialTokenNFT {
     event GroupDataChanged (
         uint8 indexed level,
         uint112 indexed group,
-        uint96 oldSize,
-        uint96 newSize,
-        uint24 uriIndex,
+        uint64 oldSize,
+        uint64 newSize,
+        uint32 uriIndex,
         bool auxEnabled
     );
 
     event OwnershipTransferred (
         address indexed previousOwner, 
         address indexed newOwner
+    );
+
+    event NFTUpgraded (
+        address indexed owner,
+        uint256 indexed id,
+        uint8 level,
+        uint64 group,
+        uint64 index
     );
 
     // Manager only function
@@ -50,16 +56,16 @@ interface ISocialTokenNFT {
     function transferOwnership(address newOwner) external;
     function setInterestBonus(uint8 level, uint64 newBonus) external;
     function setForgeValues(uint256 newElementCost, uint256 newForgeCost) external;
-    function setURIs(uint24 index, string memory newURI, string memory newAuxURI) external;
+    function setURIs(uint32 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions
-    function setGroupData(uint64 group, uint96[] memory sizes, bool[] memory auxVersionEnabled, uint24[] memory uriIndexes, uint32[] memory salts) external;
-    function setElementLibararySize(uint96 size) external;
+    function setGroupData(uint64 group, uint64[] memory sizes, bool[] memory auxVersionEnabled, uint32[] memory uriIndexes, uint64[] memory salts) external;
+    function setElementLibararySize(uint64 size) external;
     function awardBounty(address recipient, uint256 tokenReward, NFTData[] memory nftAwards) external;
 
     // Public views
     function interestBonus(address account) external view returns(uint64);
-    function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint96 index);
-    function getURIsByIndex(uint24 index) external view returns(string memory baseURI, string memory auxURI);
+    function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint64 index);
+    function getURIsByIndex(uint32 index) external view returns(string memory baseURI, string memory auxURI);
     function getClaimableBountyCount(address account) external view returns(uint256 number);
 }
