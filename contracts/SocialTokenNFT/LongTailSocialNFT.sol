@@ -219,6 +219,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         require(_exists(tokenId), NON_EXISTANT);
 
         NFTData storage tokenData = dataMap[tokenId];
+        string storage auxURI = auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex];
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
 
         if (ownerOf(tokenId) != signer || !manager.hasAuxToken(signer) || tokenData.level == 0 
@@ -226,13 +227,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             return (false, tokenURI(tokenId));
         }
 
-        string storage auxURI = auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex];
-
         if (bytes(auxURI).length == 0) {
             return (false, tokenURI(tokenId));
         }
 
-        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(_encodeToken(tokenData))))));
+        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData)))))));
     }
 
     function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
