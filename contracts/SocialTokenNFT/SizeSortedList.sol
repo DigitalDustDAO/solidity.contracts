@@ -22,6 +22,19 @@ abstract contract SizeSortedList {
         totalOfCounts[0].count = 0;
     }
 
+    function removeItemFromSizeList(uint64 itemNumber) internal {
+        ItemNode storage countNode = itemCounts[itemNumber];
+
+        if(_countNodeRemove(countNode, itemNumber) && totalOfCounts[0].count == countNode.count) {
+            uint256 i = countNode.count + 1;
+            while (totalOfCounts[i].front == 0) {
+                i++;
+            }
+
+            totalOfCounts[0].count = uint64(i);
+        }
+    }
+
     function incrementSizeList(uint64 itemNumber) internal {
         ItemNode storage countNode = itemCounts[itemNumber];
 

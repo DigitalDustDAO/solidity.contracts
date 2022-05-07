@@ -122,9 +122,28 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     function setGroupData(uint64 group, uint64[] memory sizes, bool[] memory auxVersionEnabled, uint32[] memory uriIndexes, uint64[] memory salts) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(sizes.length < MAXIMUM_LEVEL, OUT_OF_BOUNDS);
-        require(sizes.length > 0 && sizes[0] > 0, OUT_OF_BOUNDS);
+        require(sizes.length > 0, OUT_OF_BOUNDS);
         require(group <= highestDefinedGroup + 1, OUT_OF_BOUNDS);
-        require(group != 0, OUT_OF_BOUNDS);
+
+        if (group == 0) {
+            emit GroupDataChanged(0, 0, elementSize, sizes[0], 0, false);
+
+            elementSize = sizes[0];
+            if (elementIndex > sizes[0]) {
+                elementIndex = 0;
+            }
+
+            return;
+        }
+        else if (groupData[group][0].size == 0) {
+            if (group > highestDefinedGroup) {
+                highestDefinedGroup = group;
+            }
+            addItemToSizeList(group);
+        }
+        else if(sizes[0] == 0) {
+            removeItemFromSizeList(group);
+        }
 
         GroupData memory thisDatum;
 
@@ -153,22 +172,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             }
 
             groupData[group][i] = thisDatum;
-        }
-
-        if (group > highestDefinedGroup) {
-            highestDefinedGroup = group;
-            addItemToSizeList(group);
-        }
-    }
-
-    function setElementLibararySize(uint64 size) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
-
-        emit GroupDataChanged(0, 0, elementSize, size, 0, false);
-
-        elementSize = size;
-        if (elementIndex > size) {
-            elementIndex = 0;
         }
     }
 
@@ -241,6 +244,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(uint8 level, uint64 group, uint64 index) {
+        require(_exists(tokenId), NON_EXISTANT);
+
         level = dataMap[tokenId].level;
         group = dataMap[tokenId].group;
         index = dataMap[tokenId].index;
@@ -308,60 +313,68 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
     }
 
-    function forgeElements(uint256 number) public {
+    // This version of forge creates base level NFTs using tokens that must be held in the caller's wallet.
+    function forge(uint256 numberOfElements) public {
         require(elementSize > 0, NOT_ENABLED);
 
-        manager.getTokenContract().award(_msgSender(), elementMintCost * int256(number), FORGE_COST);
+        manager.getTokenContract().award(_msgSender(), elementMintCost * int256(numberOfElements), FORGE_COST);
 
         NFTData memory template = NFTData (0, 0, elementIndex);
-        while(number > 0) {
+        while(numberOfElements > 0) {
             _mint(_msgSender(), template);
             template.index = (template.index + 1) % elementSize;
-            number--;
+            numberOfElements--;
         }
         
         elementIndex = template.index;
     }
 
-    function forge(uint256 templateId, uint256 materialId) public {
-        NFTData memory forgedItem = dataMap[templateId];
-        NFTData storage material = dataMap[materialId];
+    // This version of takes the id numbers of two NFTs which must be owned by the caller and of the same level.
+    // The first id number passed in will be advanced to the next level higher, while the second will be burned.
+    function forge(uint256 chosenNftId, uint256 scrappedNftId) public {
+        NFTData memory forgedItem = dataMap[chosenNftId];
+        NFTData storage material = dataMap[scrappedNftId];
+        address caller = _msgSender();
 
-        // check constraints
-        // ownerOf takes care of checking that the ID has been minted
-        require(ownerOf(templateId) == _msgSender(), NOT_APPROVED);
-        require(ownerOf(materialId) == _msgSender(), NOT_APPROVED);
+        // Check constraints
+        //  ownerOf takes care of checking that the ID has actually been minted
+        require(ownerOf(chosenNftId) == caller, NOT_APPROVED);
+        require(ownerOf(scrappedNftId) == caller, NOT_APPROVED);
         require(highestDefinedGroup > 0, NOT_ENABLED);
         require(forgedItem.level < MAXIMUM_LEVEL - 1, NOT_ENABLED);
         require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);
         require(material.level == forgedItem.level, INVALID_INPUT);
 
-        // attempt to deduct forging cost
+        // Attempt to deduct forging cost
         if (forgeCost < 0) {
-            manager.getTokenContract().award(_msgSender(), forgeCost, "forging cost");
+            manager.getTokenContract().award(caller, forgeCost, "forging cost");
         }
 
-        // destroy the passed in items and update the size list
+        // Destroy the passed in items and update the size list
         if (material.level > 0) {
             decrementSizeList(material.group);
         }
-        _burn(materialId);
+        _burn(scrappedNftId);
 
-        // upgrade the NFT
+        // Select a group if nessessary
         if (forgedItem.level == 0) {
             forgedItem.group = getSizeListSmallestEntry();
             incrementSizeList(forgedItem.group);
         }
 
-        // Instead of using "forgedItem.level - 1" here we're just incrementing it AFTER using it.
+        levelBalances[caller][forgedItem.level]--;
+
+        // Instead of using "forgedItem.level - 1" here we're just incrementing it AFTER using it
         forgedItem.index = groupData[forgedItem.group][forgedItem.level].current;
         groupData[forgedItem.group][forgedItem.level].current = 
             (groupData[forgedItem.group][forgedItem.level].current + 1) % groupData[forgedItem.group][forgedItem.level].size;
         forgedItem.level++;
 
-        // mint the new NFT
-        dataMap[templateId] = forgedItem;
-        emit NFTUpgraded(_msgSender(), templateId, forgedItem.level, forgedItem.group, forgedItem.index);
+        levelBalances[caller][forgedItem.level]++;
+
+        // Upgrade the chosen NFT with the modified properties
+        dataMap[chosenNftId] = forgedItem;
+        emit NFTUpgraded(caller, chosenNftId, forgedItem.level, forgedItem.group, forgedItem.index);
     }
 
     function balanceOf(address ownerAddress) public view virtual override returns (uint256 total) {
