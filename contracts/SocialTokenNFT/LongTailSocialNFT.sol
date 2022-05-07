@@ -33,7 +33,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     uint64[MAXIMUM_LEVEL] private interestBonuses;
     uint64 private elementSize;
     uint64 private elementIndex;
-    uint64 internal highestDefinedGroup;
+    uint64 public  highestDefinedGroup;
     address public owner;
     uint256 public tokenCount;
     int256 private elementMintCost;
@@ -135,14 +135,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
             return;
         }
+        else if(sizes[0] == 0) {
+            removeItemFromTracking(group);
+        }
         else if (groupData[group][0].size == 0) {
             if (group > highestDefinedGroup) {
                 highestDefinedGroup = group;
             }
-            addItemToSizeList(group);
-        }
-        else if(sizes[0] == 0) {
-            removeItemFromSizeList(group);
+            addItemToTrack(group);
         }
 
         GroupData memory thisDatum;
@@ -329,8 +329,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         elementIndex = template.index;
     }
 
-    // This version of takes the id numbers of two NFTs which must be owned by the caller and of the same level.
-    // The first id number passed in will be advanced to the next level higher, while the second will be burned.
+    // This version takes the id numbers of two NFTs to be forged together. The NFTs must be owned by the caller 
+    //  and of the same level. The first id number passed in will be advanced to the next level higher, while the 
+    //  second will be burned.
     function forge(uint256 chosenNftId, uint256 scrappedNftId) public {
         NFTData memory forgedItem = dataMap[chosenNftId];
         NFTData storage material = dataMap[scrappedNftId];
@@ -347,7 +348,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
         // Attempt to deduct forging cost
         if (forgeCost < 0) {
-            manager.getTokenContract().award(caller, forgeCost, "forging cost");
+            manager.getTokenContract().award(caller, forgeCost, FORGE_COST);
         }
 
         // Destroy the passed in items and update the size list
@@ -374,7 +375,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
         // Upgrade the chosen NFT with the modified properties
         dataMap[chosenNftId] = forgedItem;
-        emit NFTUpgraded(caller, chosenNftId, forgedItem.level, forgedItem.group, forgedItem.index);
+        //emit NFTUpgraded(caller, chosenNftId, forgedItem.level, forgedItem.group, forgedItem.index);
+        emit Transfer(caller, caller, chosenNftId);
     }
 
     function balanceOf(address ownerAddress) public view virtual override returns (uint256 total) {

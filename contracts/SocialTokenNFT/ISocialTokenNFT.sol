@@ -41,13 +41,13 @@ interface ISocialTokenNFT {
         address indexed newOwner
     );
 
-    event NFTUpgraded (
-        address indexed owner,
-        uint256 indexed id,
-        uint8 level,
-        uint64 group,
-        uint64 index
-    );
+    // event NFTUpgraded (
+    //     address indexed owner,
+    //     uint256 indexed id,
+    //     uint8 level,
+    //     uint64 group,
+    //     uint64 index
+    // );
 
     // Manager only function
     function setManager(address newManager) external;

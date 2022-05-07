@@ -32,12 +32,6 @@ interface ISocialToken {
         int256 interest
     );
 
-    event MiningReward (
-        address indexed account,
-        uint96 tasksCompleted,
-        uint256 reward
-    );
-
     event AwardToAddress (
         address indexed account,
         int256 amount,

@@ -18,7 +18,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     bool private mining;
     uint256 internal lastInterestAdjustment;
-    uint256 internal lastCompletedDistribution;
+    uint256 public   lastCompletedDistribution;
     uint256 internal rewardPerMiningTask;
     uint256 internal miningGasReserve;
     uint256 internal baseInterestRate;
@@ -41,7 +41,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         linearInterestBonus = 25000000;
         quadraticInterestBonus = 10000000;
         rewardPerMiningTask = 10**18;
-        miningGasReserve = 1500;
+        miningGasReserve = 40000;
 
         mininumStakeAmount = 3125000000000000; // 1/32th of one token
         mininumStakeDays = 7;
@@ -84,9 +84,13 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         uint256 accountIndex = stakesByAccount[_msgSender()].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
+        // users can only stake as much as they have
+        if (balanceOf(_msgSender()) < amount) {
+            amount = balanceOf(_msgSender());
+        }
+
         // ensure inputs are not out of range 
         require(amount >= mininumStakeAmount, "Stake too small");
-        require(balanceOf(_msgSender()) >= amount, "Insufficient balance");
         require(numberOfDays <= maximumStakeDays, "Stake too long");
         require(numberOfDays >= mininumStakeDays, "Stake too short");
         require(accountIndex <= type(uint32).max, STAKE_LIMIT);
@@ -154,6 +158,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         emit RedeemedStake(stakeAccount, myStake.principal, interest);
     }
 
+    // It would not be advisable to call this function using the default gas estimate.
     function mine() public virtual {
         require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
         manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
@@ -172,7 +177,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // reward ended stakes to people
-        for (uint256 i = lastCompletedDistribution;i <= today;i++) {
+        uint256 i = lastCompletedDistribution + 1;
+        while (lastCompletedDistribution < today && gasleft() >= miningGasReserve) {
             while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
                 currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
                 if (currentStake.owner != address(0)) {
@@ -188,11 +194,16 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
                 stakesByEndDay[i].pop();
             }
+
+            if (stakesByEndDay[i].length == 0) {
+                lastCompletedDistribution = i;
+                i++;
+            }
         }
 
         if (miningReward > 0) {
             _mint(_msgSender(), miningReward);
-            emit MiningReward(_msgSender(), uint96(miningReward / rewardPerMiningTask), miningReward);
+            emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
         }
 
         mining = false;
@@ -219,7 +230,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             currentTasks = currentTasks + stakesByEndDay[i].length;
         }
         
-        upcomingTasks = stakesByEndDay[today + 1].length + lastInterestAdjustment <= today ? 1 : 0;
+        upcomingTasks = stakesByEndDay[today + 1].length + (lastInterestAdjustment <= today ? 1 : 0);
     }
 
     function getContractInterestRates() public view returns(uint64, uint64, uint64, uint256, uint256) {
