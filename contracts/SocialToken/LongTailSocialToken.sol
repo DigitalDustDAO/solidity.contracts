@@ -163,7 +163,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // emit events
-        emit RedeemedStake(stakeAccount, myStake.principal, interest);
+        emit RedeemedStake(stakeAccount, stakeNumber, myStake.principal, interest);
     }
 
     // It would not be advisable to call this function using the default gas estimate.
@@ -196,6 +196,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                     _transfer(address(this), currentStake.owner, accountStake.principal);
                     _mint(currentStake.owner, interest);
 
+                    emit RedeemedStake(currentStake.owner, currentStake.index, accountStake.principal, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
                     miningReward += rewardPerMiningTask;
                 }
