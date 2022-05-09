@@ -138,6 +138,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     function unstake(uint256 amount) public {
         Stake storage storedStake = stakes[_msgSender()];
         require(storedStake.principal > 0, "Account not staked");
+        require(storedStake.principal >= amount, "Amount requested not staked");
         
         _awardInterest(storedStake);
 

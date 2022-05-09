@@ -9,7 +9,8 @@ import "../SocialToken/ISocialToken.sol";
 
 contract LongTailSocialToken is ISocialToken, ERC20 {
     mapping(uint256 => StakeDataPointer[]) private stakesByEndDay;
-    mapping(address => StakeData[]) private stakesByAccount;
+    mapping(address => mapping(uint256 => StakeData)) private stakesByAccount;
+    mapping(address => uint256) private nextStakeForAccount;
 
     ISocialTokenManager public manager;
 
@@ -41,7 +42,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         linearInterestBonus = 25000000;
         quadraticInterestBonus = 10000000;
         rewardPerMiningTask = 10**18;
-        miningGasReserve = 40000;
+        miningGasReserve = 32000;
 
         mininumStakeAmount = 3125000000000000; // 1/32th of one token
         mininumStakeDays = 7;
@@ -56,6 +57,13 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                 
         if (startInterestAdjustment)
             lastInterestAdjustment = 0;
+    }
+
+    function removeExternalErc20Balance(address tokenContract, address recipient) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
+        require(tokenContract != address(this));
+
+        IERC20(tokenContract).transfer(recipient, IERC20(tokenContract).balanceOf(address(this)));
     }
 
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) public {
@@ -81,33 +89,33 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         // cache refrence variables
         uint256 today = getCurrentDay();
         uint256 endDay = today + numberOfDays;
-        uint256 accountIndex = stakesByAccount[_msgSender()].length;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
-
-        // users can only stake as much as they have
-        if (balanceOf(_msgSender()) < amount) {
-            amount = balanceOf(_msgSender());
-        }
 
         // ensure inputs are not out of range 
         require(amount >= mininumStakeAmount, "Stake too small");
+        require(amount <= balanceOf(_msgSender()), "Balance less than staked amount");
         require(numberOfDays <= maximumStakeDays, "Stake too long");
         require(numberOfDays >= mininumStakeDays, "Stake too short");
-        require(accountIndex <= type(uint32).max, STAKE_LIMIT);
         require(endDayIndex <= type(uint128).max, STAKE_LIMIT);
 
         // populate stake data
-        stakesByEndDay[endDay].push(StakeDataPointer(
-            _msgSender(),
-            calculateInterestRate(_msgSender(), numberOfDays),
-            uint32(accountIndex)
-        ));
+        while(stakesByAccount[_msgSender()][nextStakeForAccount[_msgSender()]].principal > 0) {
+            nextStakeForAccount[_msgSender()] = (nextStakeForAccount[_msgSender()] + 1) % type(uint32).max;
+        }
+        uint32 accountIndex = uint32(nextStakeForAccount[_msgSender()]);
 
-        stakesByAccount[_msgSender()].push(StakeData(
+        stakesByAccount[_msgSender()][nextStakeForAccount[_msgSender()]] = StakeData(
             uint64(today),
             uint64(endDay),
             uint128(endDayIndex),
             amount
+        );
+        nextStakeForAccount[_msgSender()] = (nextStakeForAccount[_msgSender()] + 1) % type(uint32).max;
+
+        stakesByEndDay[endDay].push(StakeDataPointer(
+            _msgSender(),
+            calculateInterestRate(_msgSender(), numberOfDays),
+            accountIndex
         ));
 
         // send the stake to this contract
@@ -119,10 +127,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             uint64(endDay),
             amount,
             stakesByEndDay[endDay][endDayIndex].interestRate,
-            uint32(accountIndex)
+            accountIndex
         );
 
-        return uint32(accountIndex);
+        return accountIndex;
     }
 
     function unstake(uint32 stakeNumber) public virtual {
@@ -167,6 +175,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         uint256 miningReward;
         uint256 interest;
         uint256 today = getCurrentDay();
+        uint256 workingDay = lastCompletedDistribution + 1;
         StakeDataPointer storage currentStake;
         StakeData storage accountStake;
 
@@ -177,10 +186,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // reward ended stakes to people
-        uint256 i = lastCompletedDistribution + 1;
         while (lastCompletedDistribution < today && gasleft() >= miningGasReserve) {
-            while (stakesByEndDay[i].length > 0 && gasleft() >= miningGasReserve) {
-                currentStake = stakesByEndDay[i][stakesByEndDay[i].length - 1];
+            while (stakesByEndDay[workingDay].length > 0 && gasleft() >= miningGasReserve) {
+                currentStake = stakesByEndDay[workingDay][stakesByEndDay[workingDay].length - 1];
                 if (currentStake.owner != address(0)) {
                     accountStake = stakesByAccount[currentStake.owner][currentStake.index];
 
@@ -192,19 +200,18 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                     miningReward += rewardPerMiningTask;
                 }
 
-                stakesByEndDay[i].pop();
+                stakesByEndDay[workingDay].pop();
             }
 
-            if (stakesByEndDay[i].length == 0) {
-                lastCompletedDistribution = i;
-                i++;
+            if (stakesByEndDay[workingDay].length == 0) {
+                lastCompletedDistribution = workingDay;
+                workingDay++;
             }
         }
 
-        if (miningReward > 0) {
-            _mint(_msgSender(), miningReward);
-            emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
-        }
+        require(miningReward > 0, "No work done");
+        _mint(_msgSender(), miningReward);
+        emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
 
         mining = false;
     }
@@ -233,7 +240,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         upcomingTasks = stakesByEndDay[today + 1].length + (lastInterestAdjustment <= today ? 1 : 0);
     }
 
-    function getContractInterestRates() public view returns(uint64, uint64, uint64, uint256, uint256) {
+    function getContractInterestRates() public view 
+            returns(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) {
         return (
             uint64(baseInterestRate),
             uint64(linearInterestBonus),
@@ -243,11 +251,11 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         );
     }
 
-    function getContractConstraints() public view returns(uint256, uint64, uint64) {
+    function getContractConstraints() public view returns(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) {
         return (mininumStakeAmount, uint64(mininumStakeDays), uint64(maximumStakeDays));
     }
 
-    function getStakeValues (address account, uint32 id) public view returns(uint64, uint64, uint64, uint256) {
+    function getStakeValues (address account, uint32 id) public view returns(uint64 start, uint64 end, uint64 interestRate, uint256 principal) {
         return (
             stakesByAccount[account][id].start,
             stakesByAccount[account][id].end,
@@ -256,8 +264,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         );
     }
 
-    function getCurrentDay() public virtual view returns(uint256) {
-        return (block.timestamp - START_TIME) / 1 days;
+    function getCurrentDay() public virtual view returns(uint256 today) {
+        today = (block.timestamp - START_TIME) / 1 days;
     }
 
     function getVotingPower(address account, uint64 minValidStakeLength, uint32[] memory stakeIds) public view returns(uint256 votingPower) {

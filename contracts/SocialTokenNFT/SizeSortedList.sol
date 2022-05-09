@@ -26,8 +26,8 @@ abstract contract SizeSortedList {
         bool enabled;
     } // 56 bits unused
 
-    mapping(uint256 => ItemNode) internal itemCounts;
-    mapping(uint256 => ItemNode) internal totalOfCounts;
+    mapping(uint256 => ItemNode) private itemCounts;
+    mapping(uint256 => ItemNode) private totalOfCounts;
 
     function addItemToTrack(uint64 itemNumber) internal {
         ItemNode storage countNode = itemCounts[itemNumber];
