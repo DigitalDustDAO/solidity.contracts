@@ -42,7 +42,6 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         
         START_TIME = block.timestamp - 2 hours - (block.timestamp % 1 days);
         interestRate = 4294967296;
-        vestingPeriod = 1;
     }
 
     function setManager(address newManager) external {

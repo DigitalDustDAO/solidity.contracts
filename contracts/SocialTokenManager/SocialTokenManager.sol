@@ -72,8 +72,13 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         }
     }
 
-    function hasAuxToken(address account) public view returns(bool) {
-        return address(auxTokenContract) == address(0) ? true : auxTokenContract.balanceOf(account) > 0;
+    function auxToken(address account) public view returns(uint32) {
+        if (address(auxTokenContract) == address(0)) {
+            return 1;
+        }
+        else {
+            return auxTokenContract.balanceOf(account) > 0 ? 1 : 0;
+        }
     }
 
     function getDaoContract() public view returns(IDigitalDustDAO) {

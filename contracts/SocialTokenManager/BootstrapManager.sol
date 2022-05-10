@@ -94,8 +94,8 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         }
     }
 
-    function hasAuxToken(address) public pure returns(bool) {
-        return true;
+    function auxToken(address) public pure returns(uint32 auxIndex) {
+        return 1;
     }
 
     function getDaoContract() public view returns(IDigitalDustDAO) {

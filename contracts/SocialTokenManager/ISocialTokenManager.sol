@@ -21,7 +21,7 @@ interface ISocialTokenManager is IERC165 {
     function getDaoContract() external view returns(IDigitalDustDAO);
     function getTokenContract() external view returns(ISocialToken);
     function getNftContract() external view returns(ISocialTokenNFT);
-    function hasAuxToken(address account) external view returns(bool);
+    function auxToken(address account) external view returns(uint32);
     
 
     //permission and control

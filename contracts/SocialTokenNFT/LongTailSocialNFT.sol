@@ -224,8 +224,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         NFTData storage tokenData = dataMap[tokenId];
         string storage auxURI = auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex];
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
+        uint256 auxIndex = manager.auxToken(signer);
 
-        if (ownerOf(tokenId) != signer || !manager.hasAuxToken(signer) || tokenData.level == 0 
+        if (ownerOf(tokenId) != signer || auxIndex == 0 || tokenData.level == 0 
                 || !groupData[tokenData.group][tokenData.level - 1].auxEnabled) {
             return (false, tokenURI(tokenId));
         }
@@ -234,7 +235,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             return (false, tokenURI(tokenId));
         }
 
-        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData)))))));
+        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData, auxIndex)))))));
     }
 
     function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
@@ -401,7 +402,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
     }
 
-    function _encodeToken(NFTData storage tokenData) private view returns(bytes32) {
+    function _encodeToken(NFTData storage tokenData, uint256 auxIndex) private view returns(bytes32) {
         uint256 total = tokenData.level;
         total = total << 64;
         total += tokenData.group;
@@ -410,6 +411,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         total = total << 64;
         total += groupData[tokenData.group][tokenData.level - 1].salt;
         total = total << 56;
+        total += auxIndex;
         return bytes32(total);
     }
 
