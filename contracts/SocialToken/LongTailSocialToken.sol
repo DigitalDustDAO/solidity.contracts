@@ -163,11 +163,11 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // emit events
-        emit RedeemedStake(stakeAccount, stakeNumber, myStake.principal, interest);
+        emit RedeemedStake(stakeAccount, uint64(getCurrentDay()), stakeNumber, myStake.principal, interest);
     }
 
     // It would not be advisable to call this function using the default gas estimate.
-    function mine() public virtual {
+    function mine(uint256 tasksToDo) public virtual {
         require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
         manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
 
@@ -186,8 +186,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // reward ended stakes to people
-        while (lastCompletedDistribution < today && gasleft() >= miningGasReserve) {
-            while (stakesByEndDay[workingDay].length > 0 && gasleft() >= miningGasReserve) {
+        while (lastCompletedDistribution < today && tasksToDo > 0) {
+            while (stakesByEndDay[workingDay].length > 0 && tasksToDo > 0) {
                 currentStake = stakesByEndDay[workingDay][stakesByEndDay[workingDay].length - 1];
                 if (currentStake.owner != address(0)) {
                     accountStake = stakesByAccount[currentStake.owner][currentStake.index];
@@ -196,9 +196,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                     _transfer(address(this), currentStake.owner, accountStake.principal);
                     _mint(currentStake.owner, interest);
 
-                    emit RedeemedStake(currentStake.owner, currentStake.index, accountStake.principal, int256(interest));
+                    emit RedeemedStake(currentStake.owner, uint64(today), currentStake.index, accountStake.principal, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
                     miningReward += rewardPerMiningTask;
+                    tasksToDo--;
                 }
 
                 stakesByEndDay[workingDay].pop();
@@ -210,7 +211,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             }
         }
 
-        require(miningReward > 0, "No work done");
+        // require(miningReward > 0, "No work done");
         _mint(_msgSender(), miningReward);
         emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
 
