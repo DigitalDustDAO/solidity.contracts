@@ -22,7 +22,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     uint256 internal lastInterestAdjustment;
     uint256 public   lastCompletedDistribution;
     uint256 internal rewardPerMiningTask;
-    uint256 internal miningGasReserve;
     uint256 internal baseInterestRate;
     uint256 internal linearInterestBonus;
     uint256 internal quadraticInterestBonus;
@@ -43,7 +42,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         linearInterestBonus = 25000000;
         quadraticInterestBonus = 10000000;
         rewardPerMiningTask = 10**18;
-        miningGasReserve = 32000;
 
         mininumStakeAmount = 3125000000000000; // 1/32th of one token
         mininumStakeDays = 7;
@@ -67,7 +65,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         IERC20(tokenContract).transfer(recipient, IERC20(tokenContract).balanceOf(address(this)));
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) public {
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
         require(miningReward > 0, INVALID_INPUT); // this would cause a divide by zero error inside the mine function.
 
@@ -75,7 +73,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         linearInterestBonus = linear;
         quadraticInterestBonus = quadratic;
         rewardPerMiningTask = miningReward;
-        miningGasReserve = miningReserve;
     }
 
     function setContractConstraints(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) public {
@@ -215,7 +212,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             }
         }
 
-        // require(miningReward > 0, "No work done");
         _mint(_msgSender(), miningReward);
         emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
 
@@ -246,14 +242,12 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         upcomingTasks = stakesByEndDay[today + 1].length + (lastInterestAdjustment <= today ? 1 : 0);
     }
 
-    function getContractInterestRates() public view 
-            returns(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) {
+    function getContractInterestRates() public view returns(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward) {
         return (
             uint64(baseInterestRate),
             uint64(linearInterestBonus),
             uint64(quadraticInterestBonus),
-            rewardPerMiningTask,
-            miningGasReserve
+            rewardPerMiningTask
         );
     }
 
@@ -327,7 +321,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         uint256 totalDays = end - start;
         uint256 daysMature = current - start;
 
-        return daysMature <= totalDays / 2 ? daysMature : totalDays - daysMature;
+        return daysMature <= totalDays / 2 ? daysMature : (totalDays - daysMature);
     }
 
     function _fullInterest(uint256 duration, uint256 interestRate, uint256 principal) private pure returns(uint256) {

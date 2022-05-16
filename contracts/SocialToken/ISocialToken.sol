@@ -41,7 +41,7 @@ interface ISocialToken {
     );
 
     function setManager(address newManager, bool startInterestAdjustment) external;
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) external;
+    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward) external;
     function setContractConstraints(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) external;
     function award(address account, int256 amount, string memory explanation) external;
     function getVotingPower(address account, uint64 minValidStakeLength, uint32[] memory stakeIds) external view returns(uint256 votingPower);
