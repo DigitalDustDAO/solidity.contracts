@@ -16,6 +16,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     string private STAKE_LIMIT = "Stake limit reached";
     string private UNAUTHORIZED = "Not authorized";
+    string private INVALID_INPUT = "Invalid input";
 
     bool private mining;
     uint256 internal lastInterestAdjustment;
@@ -68,7 +69,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward, uint256 miningReserve) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
-        require(miningReward > 0, "Invalid input"); // this would cause a divide by zero error inside the mine function.
+        require(miningReward > 0, INVALID_INPUT); // this would cause a divide by zero error inside the mine function.
 
         baseInterestRate = base;
         linearInterestBonus = linear;
@@ -79,6 +80,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function setContractConstraints(uint256 minStakeAmount, uint64 minStakeDays, uint64 maxStakeDays) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        require(minStakeDays > 0, INVALID_INPUT); // 0 would mess up mining tasks.
 
         mininumStakeAmount = minStakeAmount;
         mininumStakeDays = minStakeDays;
@@ -208,6 +210,8 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             if (stakesByEndDay[workingDay].length == 0) {
                 lastCompletedDistribution = workingDay;
                 workingDay++;
+                miningReward += rewardPerMiningTask / 10;
+                tasksToDo--;
             }
         }
 
