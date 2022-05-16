@@ -205,15 +205,18 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory uri) {
         require(_exists(tokenId), NON_EXISTANT);
+        NFTData storage tokenData = dataMap[tokenId];
 
-        string storage baseURI = dataMap[tokenId].level == 0 ? baseTokenURIs[0] :
-            baseTokenURIs[groupData[dataMap[tokenId].group][dataMap[tokenId].level - 1].uriIndex];
+        uint256 uriIndex = tokenData.level == 0 ? 0 : groupData[tokenData.group][tokenData.level - 1].uriIndex;
+        string storage baseURI;
 
-        return bytes(baseURI).length == 0 ? "" : string(
-            abi.encodePacked(baseURI, SLASH, 
-                uint256(dataMap[tokenId].level).toString(), SLASH, 
-                uint256(dataMap[tokenId].group).toString(), SLASH,
-                uint256(dataMap[tokenId].index).toString()
+        if (baseTokenURIs.length <= uriIndex) { return ""; }
+        else { baseURI = baseTokenURIs[uriIndex]; }
+
+        return string(abi.encodePacked(baseURI, SLASH, 
+                uint256(tokenData.level).toString(), SLASH, 
+                uint256(tokenData.group).toString(), SLASH,
+                uint256(tokenData.index).toString()
             )
         );
     }
@@ -222,7 +225,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         require(_exists(tokenId), NON_EXISTANT);
 
         NFTData storage tokenData = dataMap[tokenId];
-        string storage auxURI = auxTokenURIs[groupData[tokenData.group][tokenData.level - 1].uriIndex];
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
         uint256 auxIndex = manager.auxToken(signer);
 
@@ -231,9 +233,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             return (false, tokenURI(tokenId));
         }
 
-        if (bytes(auxURI).length == 0) {
-            return (false, tokenURI(tokenId));
-        }
+        uint256 uriIndex = groupData[tokenData.group][tokenData.level - 1].uriIndex;
+        string storage auxURI;
+        if (auxTokenURIs.length <= uriIndex) { return (false, tokenURI(tokenId)); }
+        else { auxURI = auxTokenURIs[uriIndex]; }
 
         return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData, auxIndex)))))));
     }
@@ -376,7 +379,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
         // Upgrade the chosen NFT with the modified properties
         dataMap[chosenNftId] = forgedItem;
-        //emit NFTUpgraded(caller, chosenNftId, forgedItem.level, forgedItem.group, forgedItem.index);
         emit Transfer(caller, caller, chosenNftId);
     }
 

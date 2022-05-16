@@ -3,7 +3,6 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-//import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface ISocialTokenNFT {
     
@@ -40,14 +39,6 @@ interface ISocialTokenNFT {
         address indexed previousOwner, 
         address indexed newOwner
     );
-
-    // event NFTUpgraded (
-    //     address indexed owner,
-    //     uint256 indexed id,
-    //     uint8 level,
-    //     uint64 group,
-    //     uint64 index
-    // );
 
     // Manager only function
     function setManager(address newManager) external;
