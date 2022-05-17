@@ -39,8 +39,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     int256 private elementMintCost;
     int256 private forgeCost;
 
-    constructor(address manager_, bytes32 auxUriUnlock) ERC721("Long Tail Social NFT", "LTSNFT") {
-        manager = ISocialTokenManager(manager_);
+    constructor(address managerAddress, bytes32 auxUriUnlock) ERC721("Long Tail Social NFT", "LTSNFT") {
+        manager = ISocialTokenManager(managerAddress);
         AUX_URI_UNLOCK = auxUriUnlock;
 
         interestBonuses[0] = 32768;

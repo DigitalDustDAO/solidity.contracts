@@ -9,7 +9,7 @@ import "./IMeasureManager.sol";
 import "./IMeasure.sol";
 // import "./IRule34.sol";
 
-contract BootstrapManager is Context, IMeasureManager, ERC165 {
+contract MeasureManager is Context, IMeasureManager, ERC165 {
     IDigitalDustDAO daoContract;
     IRule34 private rule34Contract;
     IMeasure private measureContract;
