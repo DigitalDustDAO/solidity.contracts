@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile",
+    "copyAbi": "cp -r data/types/ ../longtail.social/abi/",
     "develop": "npx hardhat develop",
     "size": "npx hardhat size-contracts",
     "test": "npx hardhat test",

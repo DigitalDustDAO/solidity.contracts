@@ -2,11 +2,11 @@ const { task } = require("hardhat/config");
 
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
+require("@nomiclabs/hardhat-ethers");
+require("@nomiclabs/hardhat-waffle");
 require("hardhat-contract-sizer");
 require("hardhat-erc1820");
-require('@typechain/hardhat');
-require('@nomiclabs/hardhat-ethers');
-require('@nomiclabs/hardhat-waffle');
+require("@typechain/hardhat");
 
 task("accounts", "Prints the list of accounts", async () => {
     const accounts = await ethers.getSigners();
@@ -27,5 +27,10 @@ module.exports = {
                 runs: 10000,
             },
         },
-    }
+    },
+    typechain: {
+      outDir: 'data/types',
+      target: 'ethers-v5',
+      alwaysGenerateOverloads: false,
+    },
 };
