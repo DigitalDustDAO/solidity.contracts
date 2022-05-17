@@ -261,17 +261,22 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         return (baseTokenURIs[index], auxTokenURIs[index]);
     }
 
-    function getGroupData(uint64 group) public view returns(GroupData[MAXIMUM_LEVEL] memory dataForGroup) {
+    function getGroupData(uint256 group) public view returns(uint32[MAXIMUM_LEVEL - 1] memory uriIndex, uint64[MAXIMUM_LEVEL - 1] memory size, 
+        uint64[MAXIMUM_LEVEL - 1] memory currentIndex, bool[MAXIMUM_LEVEL - 1] memory auxEnabled) {
         require(group <= highestDefinedGroup, OUT_OF_BOUNDS);
 
         if (group == 0) {
-            dataForGroup[0].size = uint64(elementSize);
-            dataForGroup[0].current = uint64(elementIndex);
+            size[0] = uint64(elementSize);
+            currentIndex[0] = uint64(elementIndex);
         }
         else {
-            for (uint256 i = 1;i < MAXIMUM_LEVEL;i++) {
-                dataForGroup[i] = groupData[group][i - 1];
-                dataForGroup[i].salt = 0;
+            GroupData storage datum;
+            for (uint256 i = 0;i < MAXIMUM_LEVEL - 1;i++) {
+                datum = groupData[group][i];
+                uriIndex[i]     = datum.uriIndex;
+                size[i]         = datum.size;
+                currentIndex[i] = datum.current;
+                auxEnabled[i]   = datum.auxEnabled;
             }
         }
     }
