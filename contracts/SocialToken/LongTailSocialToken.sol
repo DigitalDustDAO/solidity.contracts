@@ -13,7 +13,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     mapping(address => uint256) private nextStakeForAccount;
 
     ISocialTokenManager public manager;
-    uint256 public immutable START_TIME;
 
     string private STAKE_LIMIT = "Stake limit reached";
     string private UNAUTHORIZED = "Not authorized";
@@ -29,6 +28,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     uint256 internal maximumStakeDays;
     uint256 internal mininumStakeDays;
     uint256 internal mininumStakeAmount;
+    uint256 internal immutable START_TIME;
 
     constructor(address managerAddress) ERC20("Long Tail Social Token", "LTST") {
 
@@ -92,7 +92,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         // ensure inputs are not out of range 
         require(amount >= mininumStakeAmount, "Stake too small");
-        require(amount <= balanceOf(_msgSender()), "Balance less than staked amount");
+        require(amount <= balanceOf(_msgSender()), "Insufficient balance");
         require(numberOfDays <= maximumStakeDays, "Stake too long");
         require(numberOfDays >= mininumStakeDays, "Stake too short");
         require(endDayIndex <= type(uint128).max, STAKE_LIMIT);
@@ -102,14 +102,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             nextStakeForAccount[_msgSender()] = (nextStakeForAccount[_msgSender()] + 1) % type(uint32).max;
         }
         uint32 accountIndex = uint32(nextStakeForAccount[_msgSender()]);
+        nextStakeForAccount[_msgSender()] = (nextStakeForAccount[_msgSender()] + 1) % type(uint32).max;
 
-        stakesByAccount[_msgSender()][nextStakeForAccount[_msgSender()]] = StakeData(
+        stakesByAccount[_msgSender()][accountIndex] = StakeData(
             uint64(today),
             uint64(endDay),
             uint128(endDayIndex),
             amount
         );
-        nextStakeForAccount[_msgSender()] = (nextStakeForAccount[_msgSender()] + 1) % type(uint32).max;
 
         stakesByEndDay[endDay].push(StakeDataPointer(
             _msgSender(),

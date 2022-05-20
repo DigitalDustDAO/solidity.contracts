@@ -150,6 +150,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         for (uint256 i = 0;i <= sizes.length - 1;i++) {
             thisDatum.size = sizes[i];
 
+            thisDatum.current = groupData[group][i].current;
             if (thisDatum.current > thisDatum.size) {
                 thisDatum.current = 0;
             }
