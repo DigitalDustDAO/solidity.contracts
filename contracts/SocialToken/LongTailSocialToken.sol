@@ -194,9 +194,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
                     _transfer(address(this), currentStake.owner, accountStake.principal);
-                    if (interest > 0) {
-                        _mint(currentStake.owner, interest);
-                    }
+                    _mint(currentStake.owner, interest);
 
                     emit RedeemedStake(currentStake.owner, uint64(today), currentStake.index, accountStake.principal, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
