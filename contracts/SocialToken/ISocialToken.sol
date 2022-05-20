@@ -19,7 +19,7 @@ interface ISocialToken {
     
     event Staked (
         address indexed account,
-        uint64 indexed duration,
+        uint64 indexed startDay,
         uint64 indexed endDay,
         uint256 amount,
         uint64 interestRate,

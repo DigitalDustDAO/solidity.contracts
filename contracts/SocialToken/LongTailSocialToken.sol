@@ -122,7 +122,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         emit Staked(
             _msgSender(),
-            uint64(numberOfDays),
+            uint64(today),
             uint64(endDay),
             amount,
             stakesByEndDay[endDay][endDayIndex].interestRate,
@@ -151,7 +151,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         // distribute the funds
         if (interest >= 0) {
             _transfer(address(this), stakeAccount, myStake.principal);
-            _mint(stakeAccount, uint256(interest));
+            if (interest > 0) {
+                _mint(stakeAccount, uint256(interest));
+            }
         }
         else if (int256(myStake.principal) + interest > 0) {
             _transfer(address(this), stakeAccount, uint256(int256(myStake.principal) + interest));
@@ -192,7 +194,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
                     _transfer(address(this), currentStake.owner, accountStake.principal);
-                    _mint(currentStake.owner, interest);
+                    if (interest > 0) {
+                        _mint(currentStake.owner, interest);
+                    }
 
                     emit RedeemedStake(currentStake.owner, uint64(today), currentStake.index, accountStake.principal, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
