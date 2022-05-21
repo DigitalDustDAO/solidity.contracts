@@ -34,7 +34,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         manager = ISocialTokenManager(managerAddress);
 
-        START_TIME = block.timestamp - 2 hours - (block.timestamp % 1 days);
+        START_TIME = block.timestamp - 2 hours + 1 minutes - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
 
         // Pick some very low default values
@@ -167,7 +167,6 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         emit RedeemedStake(stakeAccount, uint64(getCurrentDay()), stakeNumber, myStake.principal, interest);
     }
 
-    // It would not be advisable to call this function using the default gas estimate.
     function mine(uint256 tasksToDo) public virtual {
         require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
 
@@ -185,7 +184,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             lastInterestAdjustment = today;
         }
 
-        // reward ended stakes to people
+        // reward ended stakes back to accounts
         while (lastCompletedDistribution < today && tasksToDo > 0) {
             while (stakesByEndDay[workingDay].length > 0 && tasksToDo > 0) {
                 currentStake = stakesByEndDay[workingDay][stakesByEndDay[workingDay].length - 1];
@@ -282,21 +281,21 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     }
 
     // This function gets the interest that will be earned if you withdraw a stake on a particular day.
-    //  If you withdraw the same day you stake then you don't get any penality.
     function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) 
             public pure returns(int256) {
-        uint256 halfStakeLength = (end - start) / 2;
-        uint256 timeStaked = dayOfWithdrawal - start;
-        uint256 full = _fullInterest(end - start, interestRate, principal);
-
+        
+        // Changing your mind on the same day you staked will not incur a penality
         if (dayOfWithdrawal == start) {
             return 0;
         }
-        else if (timeStaked < halfStakeLength) {
-            return int256((full * timeStaked) / halfStakeLength) * -1;
+        
+        uint256 full = _fullInterest(end - start, interestRate, principal);
+
+        if (dayOfWithdrawal >= end) {
+            return int256(full);
         }
         else {
-            return int256((full * (timeStaked - halfStakeLength)) / halfStakeLength);
+            return int256(full) - int256(3 * full * (end - dayOfWithdrawal) / (end - start));
         }
     }
 
