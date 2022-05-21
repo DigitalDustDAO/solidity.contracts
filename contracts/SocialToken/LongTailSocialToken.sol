@@ -283,19 +283,22 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     // This function gets the interest that will be earned if you withdraw a stake on a particular day.
     function calculateInterest(uint256 start, uint256 end, uint256 dayOfWithdrawal, uint256 interestRate, uint256 principal) 
             public pure returns(int256) {
-        
-        // Changing your mind on the same day you staked will not incur a penality
-        if (dayOfWithdrawal == start) {
-            return 0;
-        }
-        
-        uint256 full = _fullInterest(end - start, interestRate, principal);
+        require(end > start, "Negative stake duration");
 
-        if (dayOfWithdrawal >= end) {
-            return int256(full);
-        }
-        else {
-            return int256(full) - int256(3 * full * (end - dayOfWithdrawal) / (end - start));
+        unchecked {
+            // Changing your mind on the same day you staked will not incur a penality
+            if (dayOfWithdrawal == start) {
+                return 0;
+            }
+
+            uint256 full = _fullInterest(end - start, interestRate, principal);
+
+            if (dayOfWithdrawal >= end) {
+                return int256(full);
+            }
+            else {
+                return int256(full) - int256(3 * full * (end - dayOfWithdrawal) / (end - start));
+            }
         }
     }
 
