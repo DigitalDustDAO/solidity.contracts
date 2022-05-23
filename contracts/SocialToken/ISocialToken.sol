@@ -36,8 +36,9 @@ interface ISocialToken {
 
     event AwardToAddress (
         address indexed account,
-        int256 amount,
-        string explanation
+        uint64 indexed dayIssued,
+        string indexed explanation,
+        int256 amount
     );
 
     function setManager(address newManager, bool startInterestAdjustment) external;
