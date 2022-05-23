@@ -25,6 +25,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint128 private interestRate;
     uint64 private vestingPeriod;
     bool private funded;
+    bool private depricated = false;
 
     // the normal router address is 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
     // the normal weth address is   0xc778417E063141139Fce010982780140Aa0cD5Ab
@@ -48,7 +49,9 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         require(_msgSender() == address(manager), "Not authorized");
 
         manager = ISocialTokenManager(newManager);
-        manager.registerLiquidityPool();
+        if (!depricated) {
+            manager.registerLiquidityPool();
+        }
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -87,6 +90,15 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         vestingPeriod = newVestingPeriod;
     }
 
+    function depricatePool(bool newValue) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+
+        depricated = newValue;
+        if (newValue) {
+            manager.registerLiquidityPool();
+        }
+    }
+
     // Getters
     function getCurrentDay() public virtual view returns(uint64 today) {
         today = uint64((block.timestamp - START_TIME) / 1 days);
@@ -110,6 +122,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     function stake(uint192 amount) public {
         Stake storage storedStake = stakes[_msgSender()];
 
+        require(!depricated, "Pool depricated");
         require(amount > 0);
         require(pairAddress.balanceOf(_msgSender()) >= amount, "Not enough tokens");
         require(pairAddress.allowance(_msgSender(), address(this)) >= amount, "Authorization needed");

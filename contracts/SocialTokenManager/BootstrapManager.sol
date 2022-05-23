@@ -85,15 +85,6 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         liquidityPools.push(ISocialTokenLiquidityPool(_msgSender()));
     }
 
-    function unregisterLiquidityPool(address account) external {
-        this.authorize(_msgSender(), Sensitivity.Elder);
-        for (uint256 i = 0;i < liquidityPools.length;i++) {
-            if (address(liquidityPools[i]) == account) {
-                liquidityPools[i] = ISocialTokenLiquidityPool(address(0));
-            }
-        }
-    }
-
     function auxToken(address) public pure returns(uint32 auxIndex) {
         return 1;
     }

@@ -63,15 +63,6 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
         liquidityPools.push(ISocialTokenLiquidityPool(_msgSender()));
     }
 
-    function unregisterLiquidityPool(address account) external {
-        this.authorize(_msgSender(), Sensitivity.Elder);
-        for (uint256 i = 0;i < liquidityPools.length;i++) {
-            if (address(liquidityPools[i]) == account) {
-                liquidityPools[i] = ISocialTokenLiquidityPool(address(0));
-            }
-        }
-    }
-
     function auxToken(address account) public view returns(uint32) {
         if (address(auxTokenContract) == address(0)) {
             return 1;
