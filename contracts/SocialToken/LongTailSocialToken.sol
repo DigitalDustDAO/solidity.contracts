@@ -19,11 +19,11 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     string private INVALID_INPUT = "Invalid input";
 
     bool private mining;
-    int64 internal quadraticInterest;
     uint256 internal lastInterestAdjustment;
     uint256 internal lastCompletedDistribution;
     uint256 internal rewardPerMiningTask;
     uint256 internal baseInterest;
+    int256  internal quadraticInterest;
     uint256 internal linearInterest;
     uint256 internal maximumStakeDays;
     uint256 internal mininumStakeDays;
@@ -192,7 +192,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
                     interest = _fullInterest(accountStake.end - accountStake.start, currentStake.interestRate, accountStake.principal);
                     _transfer(address(this), currentStake.owner, accountStake.principal);
-                    _mint(currentStake.owner, interest);
+                    if (interest > 0) {
+                        _mint(currentStake.owner, interest);
+                    }
 
                     emit RedeemedStake(currentStake.owner, uint64(today), currentStake.index, accountStake.principal, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
@@ -245,7 +247,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         return (
             uint64(baseInterest),
             uint64(linearInterest),
-            quadraticInterest,
+            int64(quadraticInterest),
             rewardPerMiningTask
         );
     }
@@ -313,14 +315,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             );
 
             if (quadraticInterest >= 0) {
-                interest += uint256(int256(quadraticInterest)) * numberOfDays * numberOfDays;
+                interest += uint256(quadraticInterest) * numberOfDays * numberOfDays;
             }
             else {
-                uint256 quadratic = uint256(int256(-quadraticInterest)) * numberOfDays * numberOfDays;
+                uint256 quadratic = uint256(-quadraticInterest) * numberOfDays * numberOfDays;
                 interest = interest > quadratic ? interest - quadratic : 0;
             }
 
-            // cap the value at what can be held in a uint64
+            // cap the value to what can be held in a uint64
             return interest > type(uint64).max ? type(uint64).max : uint64(interest);
         }
     }
