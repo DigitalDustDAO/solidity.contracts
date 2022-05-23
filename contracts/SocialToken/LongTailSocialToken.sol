@@ -19,12 +19,12 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     string private INVALID_INPUT = "Invalid input";
 
     bool private mining;
+    int64 internal quadraticInterest;
     uint256 internal lastInterestAdjustment;
     uint256 internal lastCompletedDistribution;
     uint256 internal rewardPerMiningTask;
-    uint256 internal baseInterestRate;
-    uint256 internal linearInterestBonus;
-    uint256 internal quadraticInterestBonus;
+    uint256 internal baseInterest;
+    uint256 internal linearInterest;
     uint256 internal maximumStakeDays;
     uint256 internal mininumStakeDays;
     uint256 internal mininumStakeAmount;
@@ -34,18 +34,17 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         manager = ISocialTokenManager(managerAddress);
 
-        START_TIME = block.timestamp - 2 hours + 1 minutes - (block.timestamp % 1 days);
+        START_TIME = block.timestamp - 2 hours + 2 minutes - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
 
-        // Pick some very low default values
-        baseInterestRate = 50000000;
-        linearInterestBonus = 25000000;
-        quadraticInterestBonus = 10000000;
+        // Pick some default values
+        baseInterest        = 276926163613577;
+        linearInterest      = 18952134322304;
+        quadraticInterest   = 196838972863;
         rewardPerMiningTask = 10**18;
-
-        mininumStakeAmount = 3125000000000000; // 1/32th of one token
-        mininumStakeDays = 7;
-        maximumStakeDays = 5844; // 16 years
+        mininumStakeAmount  = 3125000000000000; // 1/32th of one token
+        mininumStakeDays    = 7;
+        maximumStakeDays    = 5844; // 16 years
     }
 
     function setManager(address newManager, bool startInterestAdjustment) external {
@@ -65,13 +64,13 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         IERC20(tokenContract).transfer(recipient, IERC20(tokenContract).balanceOf(address(this)));
     }
 
-    function setInterestRates(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward) public {
+    function setInterestRates(uint64 base, uint64 linear, int64 quadratic, uint256 miningReward) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
         require(miningReward > 0, INVALID_INPUT); // this would cause a divide by zero error inside the mine function.
 
-        baseInterestRate = base;
-        linearInterestBonus = linear;
-        quadraticInterestBonus = quadratic;
+        baseInterest = base;
+        linearInterest = linear;
+        quadraticInterest = quadratic;
         rewardPerMiningTask = miningReward;
     }
 
@@ -242,11 +241,11 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         upcomingTasks = stakesByEndDay[today + 1].length + (lastInterestAdjustment <= today ? 1 : 0);
     }
 
-    function getContractInterestRates() public view returns(uint64 base, uint64 linear, uint64 quadratic, uint256 miningReward) {
+    function getContractInterestRates() public view returns(uint64 base, uint64 linear, int64 quadratic, uint256 miningReward) {
         return (
-            uint64(baseInterestRate),
-            uint64(linearInterestBonus),
-            uint64(quadraticInterestBonus),
+            uint64(baseInterest),
+            uint64(linearInterest),
+            quadraticInterest,
             rewardPerMiningTask
         );
     }
@@ -268,12 +267,14 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         today = (block.timestamp - START_TIME) / 1 days;
     }
 
-    function getVotingPower(address account, uint64 minValidStakeLength, uint32[] memory stakeIds) public view returns(uint256 votingPower) {
+    function getVotingPower(address account, uint256 minValidStakeLength, uint32[] memory stakeIds) public view returns(uint256 votingPower) {
         StakeData storage thisStake;
+        uint256 stakeLength;
 
         for(uint256 i = 0; i < stakeIds.length; i++) {
             thisStake = stakesByAccount[account][stakeIds[i]];
-            if (thisStake.principal > 0 && thisStake.end - thisStake.start >= minValidStakeLength) {
+            stakeLength = thisStake.end - thisStake.start;
+            if (thisStake.principal > 0 && stakeLength >= minValidStakeLength) {
                 votingPower += (_fullInterest(_votingWeight(thisStake.start, thisStake.end, getCurrentDay()),  
                         stakesByEndDay[thisStake.end][thisStake.index].interestRate, thisStake.principal));
             }
@@ -287,7 +288,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         unchecked {
             // Changing your mind on the same day you staked will not incur a penality
-            if (dayOfWithdrawal == start) {
+            if (dayOfWithdrawal <= start) {
                 return 0;
             }
 
@@ -297,7 +298,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                 return int256(full);
             }
             else {
-                return int256(full) - int256(3 * full * (end - dayOfWithdrawal) / (end - start));
+                return int256(full) - int256(3 * (full * (end - dayOfWithdrawal) / (end - start)));
             }
         }
     }
@@ -306,11 +307,19 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         // These values should never be set high enough that they *could* overflow. If they do, however, then it's better to rollover than to revert.
         unchecked {
             uint256 interest = (
-                baseInterestRate +
-                (linearInterestBonus * numberOfDays) +
-                (quadraticInterestBonus * numberOfDays * numberOfDays) +
+                baseInterest +
+                (linearInterest * numberOfDays) +
                 manager.getNftContract().interestBonus(account)
             );
+
+            if (quadraticInterest >= 0) {
+                interest += uint256(int256(quadraticInterest)) * numberOfDays * numberOfDays;
+            }
+            else {
+                uint256 quadratic = uint256(int256(-quadraticInterest)) * numberOfDays * numberOfDays;
+                interest = interest > quadratic ? interest - quadratic : 0;
+            }
+
             // cap the value at what can be held in a uint64
             return interest > type(uint64).max ? type(uint64).max : uint64(interest);
         }
