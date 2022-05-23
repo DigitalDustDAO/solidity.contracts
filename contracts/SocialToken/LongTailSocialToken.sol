@@ -214,7 +214,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         _mint(_msgSender(), miningReward);
-        emit AwardToAddress(_msgSender(), int256(miningReward), "Mining reward");
+        emit AwardToAddress(_msgSender(), uint64(today), "Mining reward", int256(miningReward));
 
         mining = false;
     }
@@ -230,7 +230,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             _mint(account, uint256(amount));
         }
 
-        emit AwardToAddress(account, amount, explanation);
+        emit AwardToAddress(account, uint64(getCurrentDay()), explanation, amount);
     }
 
     function getNumMiningTasks() public view returns(uint256 currentTasks, uint256 upcomingTasks) {
