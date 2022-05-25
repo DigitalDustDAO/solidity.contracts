@@ -14,7 +14,7 @@ import "../SocialToken/ISocialToken.sol";
 
 contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
 
-    IUniswapV2Router02 immutable public uniV2RouterAddress;
+    IUniswapV2Router02 immutable private uniV2RouterAddress;
     IUniswapV2Pair immutable public pairAddress;
     ISocialTokenManager public manager;
 

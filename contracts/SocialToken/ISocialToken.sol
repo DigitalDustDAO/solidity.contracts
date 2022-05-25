@@ -31,7 +31,7 @@ interface ISocialToken {
         uint64 indexed dayEnded,
         uint32 indexed id,
         uint256 principal,
-        int256 interest
+        int256 payment
     );
 
     event AwardToAddress (
