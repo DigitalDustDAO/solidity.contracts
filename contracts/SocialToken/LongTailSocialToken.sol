@@ -90,6 +90,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
         // ensure inputs are not out of range 
+        require(_msgSender().code.length == 0, "Contracts cannot stake");
         require(amount >= mininumStakeAmount, "Stake too small");
         require(amount <= balanceOf(_msgSender()), "Insufficient balance");
         require(numberOfDays <= maximumStakeDays, "Stake too long");
@@ -179,7 +180,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         // adjust interest (if needed)
         if (lastInterestAdjustment < today) {
-            miningReward = manager.adjustInterest();
+            miningReward = manager.adjustInterest(_msgSender());
             if (miningReward > 0) {
                 lastInterestAdjustment = today;
             }

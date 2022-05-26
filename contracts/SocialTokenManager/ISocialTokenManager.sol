@@ -29,5 +29,5 @@ interface ISocialTokenManager is IERC165 {
     function registerLiquidityPool() external;
     function authorize(address source, Sensitivity level) external view;
     function authorizeTx(address, address, uint256) external view;
-    function adjustInterest() external view returns(uint256);
+    function adjustInterest(address) external view returns(uint256);
 }
