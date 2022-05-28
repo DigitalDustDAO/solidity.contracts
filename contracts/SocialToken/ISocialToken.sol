@@ -28,7 +28,7 @@ interface ISocialToken {
 
     event RedeemedStake (
         address indexed account,
-        uint64 indexed dayEnded,
+        uint64 indexed redeemedDay,
         uint32 indexed id,
         uint256 principal,
         int256 payment

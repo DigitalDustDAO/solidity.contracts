@@ -85,7 +85,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function stake(uint256 amount, uint256 numberOfDays) public returns(uint32) {
         // cache refrence variables
-        uint256 today = getCurrentDay();
+        uint256 today = _todayWithBuffer();
         uint256 endDay = today + numberOfDays;
         uint256 endDayIndex = stakesByEndDay[endDay].length;
 
@@ -180,7 +180,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         // adjust interest (if needed)
         if (lastInterestAdjustment < today) {
-            miningReward = manager.adjustInterest(_msgSender());
+            miningReward = manager.adjustInterest(_msgSender(), rewardPerMiningTask);
             if (miningReward > 0) {
                 lastInterestAdjustment = today;
             }
@@ -332,6 +332,10 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
         if (!mining) { manager.authorizeTx(from, to, amount); }
+    }
+
+    function _todayWithBuffer() private returns(uint256 today) {
+        today = (block.timestamp + 2 hours - START_TIME) / 1 days;
     }
 
     function _votingWeight(uint256 start, uint256 end, uint256 current) private pure returns(uint256) {

@@ -122,11 +122,12 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     function stake(uint192 amount) public {
         Stake storage storedStake = stakes[_msgSender()];
 
-        require(!depricated, "Pool depricated");
         require(amount > 0);
+        require(!depricated, "Pool depricated");
+        require(_msgSender().code.length == 0, "Contracts cannot stake");
         require(pairAddress.balanceOf(_msgSender()) >= amount, "Not enough tokens");
         require(pairAddress.allowance(_msgSender(), address(this)) >= amount, "Authorization needed");
-        require(amount + storedStake.principal <= type(uint192).max);
+        require(amount + storedStake.principal <= type(uint192).max, "Staking cap reached");
 
         if (storedStake.principal == 0) {
             storedStake.startDay = getCurrentDay() + vestingPeriod;
