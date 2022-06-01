@@ -38,7 +38,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         lastInterestAdjustment = type(uint64).max;
 
         // Pick some default values
-        baseInterest        = 334048448267282;
+        baseInterest        = 140737488355328;
         linearInterest      = 47380335805760;
         quadraticInterest   = -2729560234;
         rewardPerMiningTask = 10**18;
@@ -179,11 +179,9 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         StakeData storage accountStake;
 
         // adjust interest (if needed)
-        if (lastInterestAdjustment < today) {
-            miningReward = manager.adjustInterest(_msgSender(), rewardPerMiningTask);
-            if (miningReward > 0) {
-                lastInterestAdjustment = today;
-            }
+        if (lastInterestAdjustment < today && manager.adjustInterest(_msgSender())) {
+            miningReward = rewardPerMiningTask;
+            lastInterestAdjustment = today;
         }
 
         // reward ended stakes back to accounts
@@ -209,6 +207,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             }
 
             if (stakesByEndDay[workingDay].length == 0) {
+                delete(stakesByEndDay[workingDay]);
                 lastCompletedDistribution = workingDay;
                 workingDay++;
                 miningReward += rewardPerMiningTask / 10;

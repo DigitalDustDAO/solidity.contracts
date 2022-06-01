@@ -25,7 +25,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
     uint128 private interestRate;
     uint64 private vestingPeriod;
     bool private funded;
-    bool private depricated = false;
+    bool private depricated;
 
     // the normal router address is 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
     // the normal weth address is   0xc778417E063141139Fce010982780140Aa0cD5Ab

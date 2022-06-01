@@ -128,9 +128,8 @@ contract BootstrapManager is Context, ISocialTokenManager, ERC165 {
         require(to == address(0) || daoContract.accessOf(to, daoId) > 0, UNAUTHORIZED);
     }
 
-    function adjustInterest(address, uint256) external view returns(uint256) {
+    function adjustInterest(address) external view returns(bool) {
         // not implemented in this version
-        return 0;
+        return false;
     }
-
 }

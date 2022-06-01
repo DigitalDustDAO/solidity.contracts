@@ -37,7 +37,7 @@ interface ISocialToken {
     event AwardToAddress (
         address indexed account,
         uint64 indexed dayIssued,
-        string indexed explanation,
+        string explanation,
         int256 amount
     );
 
