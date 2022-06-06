@@ -46,7 +46,7 @@ interface ISocialTokenNFT {
 
     // Economy adjustment functions
     function transferOwnership(address newOwner) external;
-    function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] interestBonusValues) external;
+    function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] memory interestBonusValues) external;
     function setURIs(uint32 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions
