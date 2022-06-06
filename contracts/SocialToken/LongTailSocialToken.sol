@@ -333,7 +333,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         if (!mining) { manager.authorizeTx(from, to, amount); }
     }
 
-    function _todayWithBuffer() private returns(uint256 today) {
+    function _todayWithBuffer() private view returns(uint256 today) {
         today = (block.timestamp + 2 hours - START_TIME) / 1 days;
     }
 

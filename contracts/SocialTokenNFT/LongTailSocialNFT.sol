@@ -83,18 +83,21 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         owner = newOwner;
     }
 
-    function setInterestBonus(uint8 level, uint64 newBonus) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
-        require(level < MAXIMUM_LEVEL);
-
-        interestBonuses[level] = newBonus;
-    }
-
-    function setForgeValues(uint256 newElementCost, uint256 newForgeCost) public {
+    function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] interestBonusValues) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         elementMintCost = int256(newElementCost) * -1;
         forgeCost = int256(newForgeCost) * -1;
+
+        for(uint256 i = 0;i < MAXIMUM_LEVEL;i++) {
+            if (interestBonusValues.length > i && interestBonusValues[i] > 0) {
+                interestBonuses[i] = interestBonusValues[i];
+            }
+
+            if (i > 0 && interestBonuses[i - 1] > interestBonuses[i]) {
+                interestBonuses[i] = interestBonuses[i - 1];
+            }
+        }
     }
 
     function setURIs(uint32 index, string memory newURI, string memory newAuxURI) public {

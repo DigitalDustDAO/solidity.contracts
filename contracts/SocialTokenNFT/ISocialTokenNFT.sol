@@ -21,7 +21,7 @@ interface ISocialTokenNFT {
     } // 24 bits unused
 
     event RewardIssued (
-        address indexed recipiant,
+        address indexed recipient,
         uint128 tokensRewarded,
         uint128 NFTsRewarded
     );
@@ -35,6 +35,7 @@ interface ISocialTokenNFT {
         bool auxEnabled
     );
 
+    // replicates the event thrown by "Owner.sol"
     event OwnershipTransferred (
         address indexed previousOwner, 
         address indexed newOwner
@@ -45,8 +46,7 @@ interface ISocialTokenNFT {
 
     // Economy adjustment functions
     function transferOwnership(address newOwner) external;
-    function setInterestBonus(uint8 level, uint64 newBonus) external;
-    function setForgeValues(uint256 newElementCost, uint256 newForgeCost) external;
+    function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] interestBonusValues) external;
     function setURIs(uint32 index, string memory newURI, string memory newAuxURI) external;
 
     // Council functions

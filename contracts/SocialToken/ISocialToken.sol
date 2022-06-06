@@ -29,16 +29,15 @@ interface ISocialToken {
     event RedeemedStake (
         address indexed account,
         uint64 indexed redeemedDay,
-        uint32 indexed id,
-        uint256 principal,
+        uint32 id,
         int256 payment
     );
 
     event AwardToAddress (
         address indexed account,
         uint64 indexed dayIssued,
-        string explanation,
-        int256 amount
+        int256 amount,
+        string explanation
     );
 
     function setManager(address newManager, bool startInterestAdjustment) external;
