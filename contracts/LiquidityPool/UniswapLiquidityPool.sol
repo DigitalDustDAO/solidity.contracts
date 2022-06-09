@@ -144,8 +144,6 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         }
 
         pairAddress.transferFrom(_msgSender(), address(this), amount);
-
-        emit Staked(_msgSender(), storedStake.startDay, storedStake.principal);
     }
 
     function unstake(uint256 amount) public {

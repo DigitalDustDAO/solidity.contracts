@@ -43,9 +43,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         manager = ISocialTokenManager(managerAddress);
         AUX_URI_UNLOCK = auxUriUnlock;
 
-        interestBonuses[0] = 140737488355328;
+        interestBonuses[0] = 70368744177664;
         for(uint256 i = 1;i < MAXIMUM_LEVEL;i++) {
-            interestBonuses[i] = interestBonuses[i - 1] * 2;
+            interestBonuses[i] = interestBonuses[i - 1] * 3;
         }
 
         elementMintCost = -10**19;
@@ -285,13 +285,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
     }
 
-    function getClaimableBountyCount(address account) public view returns(uint256) {
-        return unclaimedBounties[account].length;
+    function getClaimableBounties(address account) public view returns(NFTData[] memory bounties) {
+        return unclaimedBounties[account];
     }
 
-    function getForgeValues() public view returns(uint256 costToMintElements, uint256 costToForgeUpgrades) {
+    function getForgeValues() public view returns(uint256 costToMintElements, uint256 costToForgeUpgrades, uint64[MAXIMUM_LEVEL] memory interestRateBonuses) {
         costToMintElements = uint256(elementMintCost * -1);
         costToForgeUpgrades = uint256(forgeCost * -1);
+        interestRateBonuses = interestBonuses;
     }
 
     /**
@@ -306,16 +307,23 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             item = bountyList[bountyList.length - 1];
 
             if (item.level == 0) {
+                item.group = 0;
                 if (item.index > elementSize || item.index == 0)
                 {
                     item.index = elementIndex;
                     elementIndex = (elementIndex + 1) % elementSize;
                 }
             }
-            else if (item.index > groupData[item.group][item.level - 1].size) {
-                group = groupData[item.group][item.level - 1];
-                item.index = group.current;
-                group.current = (group.current + 1) % group.size;
+            else {
+                if (item.group == 0) {
+                    item.group = getSizeListSmallestEntry();
+                }
+
+                if (groupData[item.group][item.level - 1].size > 0 && item.index > groupData[item.group][item.level - 1].size) {
+                    group = groupData[item.group][item.level - 1];
+                    item.index = group.current;
+                    group.current = (group.current + 1) % group.size;
+                }
 
                 incrementSizeList(item.group);
             }

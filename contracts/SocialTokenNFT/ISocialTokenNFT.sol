@@ -57,5 +57,5 @@ interface ISocialTokenNFT {
     function interestBonus(address account) external view returns(uint64);
     function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint64 index);
     function getURIsByIndex(uint32 index) external view returns(string memory baseURI, string memory auxURI);
-    function getClaimableBountyCount(address account) external view returns(uint256 number);
+    function getClaimableBounties(address account) external view returns(NFTData[] memory bounties);
 }

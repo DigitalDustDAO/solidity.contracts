@@ -168,7 +168,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
     }
 
     function mine(uint256 tasksToDo) public virtual {
-        require(balanceOf(_msgSender()) > 0, UNAUTHORIZED);
+        manager.authorizeTx(address(this), _msgSender(), rewardPerMiningTask);
 
         mining = true;
         uint256 miningReward;

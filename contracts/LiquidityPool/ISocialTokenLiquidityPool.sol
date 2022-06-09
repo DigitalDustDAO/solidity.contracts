@@ -8,12 +8,6 @@ import "../SocialToken//ISocialToken.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
 
 interface ISocialTokenLiquidityPool is IERC165 {
-    event Staked (
-        address indexed account,
-        uint64 indexed startDay,
-        uint256 totalAmountStaked
-    );
-
     struct Stake {
         uint64 startDay;
         uint192 principal;
