@@ -172,7 +172,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
 
             if (groupData[group][i].size != thisDatum.size || groupData[group][i].uriIndex != thisDatum.uriIndex || 
                     groupData[group][i].auxEnabled != thisDatum.auxEnabled) {
-                emit GroupDataChanged(uint8(i + 2), group, groupData[group][i].size, thisDatum.size, thisDatum.uriIndex, thisDatum.auxEnabled);
+                emit GroupDataChanged(i + 2, group, groupData[group][i].size, thisDatum.size, thisDatum.uriIndex, thisDatum.auxEnabled);
             }
 
             groupData[group][i] = thisDatum;
@@ -191,7 +191,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             unclaimedBounties[recipient].push(nftAwards[i]);
         }
 
-        emit RewardIssued(recipient, uint128(tokenReward), uint128(nftAwards.length));
+        emit RewardIssued(recipient, tokenReward, nftAwards.length);
     }
 
     /**
@@ -317,6 +317,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
             else {
                 if (item.group == 0) {
                     item.group = getSizeListSmallestEntry();
+                    require(item.group != 0, NOT_ENABLED);
                 }
 
                 if (groupData[item.group][item.level - 1].size > 0 && item.index > groupData[item.group][item.level - 1].size) {
@@ -362,6 +363,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         //  ownerOf takes care of checking that the ID has actually been minted
         require(ownerOf(chosenNftId) == caller, NOT_APPROVED);
         require(ownerOf(scrappedNftId) == caller, NOT_APPROVED);
+        require(chosenNftId != scrappedNftId, INVALID_INPUT);
         require(highestDefinedGroup > 0, NOT_ENABLED);
         require(forgedItem.level < MAXIMUM_LEVEL - 1, NOT_ENABLED);
         require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);

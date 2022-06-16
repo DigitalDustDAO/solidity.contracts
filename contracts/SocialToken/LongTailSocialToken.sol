@@ -164,7 +164,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         // emit events
-        emit RedeemedStake(stakeAccount, uint64(getCurrentDay()), stakeNumber, interest);
+        emit RedeemedStake(stakeAccount, getCurrentDay(), stakeNumber, interest);
     }
 
     function mine(uint256 tasksToDo) public virtual {
@@ -197,7 +197,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
                         _mint(currentStake.owner, interest);
                     }
 
-                    emit RedeemedStake(currentStake.owner, uint64(today), currentStake.index, int256(interest));
+                    emit RedeemedStake(currentStake.owner, today, currentStake.index, int256(interest));
                     delete(stakesByAccount[currentStake.owner][currentStake.index]);
                     miningReward += rewardPerMiningTask;
                     tasksToDo--;
@@ -216,7 +216,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
         }
 
         _mint(_msgSender(), miningReward);
-        emit AwardToAddress(_msgSender(), uint64(today), int256(miningReward), "Mining reward");
+        emit AwardToAddress(_msgSender(), today, int256(miningReward), "Mining reward");
 
         mining = false;
     }
@@ -232,7 +232,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
             _mint(account, uint256(amount));
         }
 
-        emit AwardToAddress(account, uint64(getCurrentDay()), amount, explanation);
+        emit AwardToAddress(account, getCurrentDay(), amount, explanation);
     }
 
     function getNumMiningTasks() public view returns(uint256 currentTasks, uint256 upcomingTasks) {

@@ -22,13 +22,13 @@ interface ISocialTokenNFT {
 
     event RewardIssued (
         address indexed recipient,
-        uint128 tokensRewarded,
-        uint128 NFTsRewarded
+        uint256 tokensRewarded,
+        uint256 NFTsRewarded
     );
 
     event GroupDataChanged (
-        uint8 indexed level,
-        uint112 indexed group,
+        uint256 indexed level,
+        uint256 indexed group,
         uint64 oldSize,
         uint64 newSize,
         uint32 uriIndex,

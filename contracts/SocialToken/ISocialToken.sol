@@ -28,14 +28,14 @@ interface ISocialToken {
 
     event RedeemedStake (
         address indexed account,
-        uint64 indexed redeemedDay,
+        uint256 indexed redeemedDay,
         uint32 id,
         int256 payment
     );
 
     event AwardToAddress (
         address indexed account,
-        uint64 indexed dayIssued,
+        uint256 indexed dayIssued,
         int256 amount,
         string explanation
     );
