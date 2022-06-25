@@ -86,7 +86,7 @@ contract SocialTokenManager is Context, ISocialTokenManager, ERC165 {
 
     function authorize(address account, Sensitivity level) external view {
         if (level == Sensitivity.Council) {
-            require(daoContract.rightsOf(account, daoId) >= 400, UNAUTHORIZED);
+            require(daoContract.rightsOf(account, daoId) >= 300, UNAUTHORIZED);
         }
         else if (level == Sensitivity.Elder) {
             require(daoContract.rightsOf(account, daoId) >= 500, UNAUTHORIZED);

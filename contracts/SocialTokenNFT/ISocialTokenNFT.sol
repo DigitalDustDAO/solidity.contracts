@@ -54,7 +54,7 @@ interface ISocialTokenNFT {
     function awardBounty(address recipient, uint256 tokenReward, NFTData[] memory nftAwards) external;
 
     // Public views
-    function interestBonus(address account) external view returns(uint64);
+    function interestBonus(address account) external view returns(uint256);
     function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint64 index);
     function getURIsByIndex(uint32 index) external view returns(string memory baseURI, string memory auxURI);
     function getClaimableBounties(address account) external view returns(NFTData[] memory bounties);

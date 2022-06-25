@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 interface IAuxCompatableNFT {
-    function tokenAuxURI(uint256 tokenId, bytes memory signedMessage) external view returns(bool different, string memory uri);
-    function hasAuxURI(uint256 tokenId) external view returns(bool auxURIExists);
+    function iconURL(uint256 uriIndex) external view returns(string memory url);
+    function tokenAuxURI(uint256 tokenId, uint256 uriIndex, bytes memory signedMessage) external view returns(string memory uri);
+    function hasAuxURI(uint256 tokenId, uint256 uriIndex) external view returns(bool auxURIExists);
 }

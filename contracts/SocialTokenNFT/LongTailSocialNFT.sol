@@ -7,11 +7,11 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "../SocialTokenNFT/ERC721.sol";
 import "../SocialTokenNFT/SizeSortedList.sol";
 import "../SocialTokenNFT/ISocialTokenNFT.sol";
-import "../SocialTokenNFT/IAuxCompatableNFT.sol";
+import "../SocialTokenNFT/IPrivateAdultNFT.sol";
 import "../SocialTokenManager/ISocialTokenManager.sol";
 import "../SocialToken/ISocialToken.sol";
 
-contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSortedList {
+contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSortedList {
     using Strings for uint256;
 
     ISocialTokenManager public manager;
@@ -59,7 +59,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721) returns (bool) {
         return 
             interfaceId == type(ISocialTokenNFT).interfaceId ||
-            interfaceId == type(IAuxCompatableNFT).interfaceId ||
+            interfaceId == type(IPrivateAdultNFT).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -197,14 +197,12 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
     /**
      * Public views
      */
-    function interestBonus(address account) external view returns(uint64) {
+    function interestBonus(address account) external view returns(uint256 totalBonus) {
         for (uint256 level = MAXIMUM_LEVEL;level > 0;level--) {
             if (levelBalances[account][level - 1] > 0) {
-                return interestBonuses[level - 1];
+                totalBonus += interestBonuses[level - 1];
             }
         }
-
-        return 0;
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory uri) {
@@ -225,14 +223,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         );
     }
 
-    function tokenAuxURI(uint256 tokenId, bytes memory signedMessage) public view virtual returns(bool isDifferent, string memory uri) {
+    function adultURI(uint256 tokenId, bytes memory signedMessage) public view virtual returns(bool isDifferent, string memory uri) {
         require(_exists(tokenId), NON_EXISTANT);
 
         NFTData storage tokenData = dataMap[tokenId];
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
-        uint256 auxIndex = manager.auxToken(signer);
+        //uint256 auxIndex = manager.auxToken(signer);
 
-        if (ownerOf(tokenId) != signer || auxIndex == 0 || tokenData.level == 0 
+        if (ownerOf(tokenId) != signer || tokenData.level == 0 
                 || !groupData[tokenData.group][tokenData.level - 1].auxEnabled) {
             return (false, tokenURI(tokenId));
         }
@@ -242,13 +240,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         if (auxTokenURIs.length <= uriIndex) { return (false, tokenURI(tokenId)); }
         else { auxURI = auxTokenURIs[uriIndex]; }
 
-        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData, auxIndex)))))));
-    }
-
-    function hasAuxURI(uint256 tokenId) public view virtual returns(bool auxURIExists) {
-        require(_exists(tokenId), NON_EXISTANT);
-
-        return dataMap[tokenId].level == 0 ? false : groupData[dataMap[tokenId].group][dataMap[tokenId].level - 1].auxEnabled;
+        return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData)))))));
     }
 
     function getTokenInfo(uint256 tokenId) public view returns(uint8 level, uint64 group, uint64 index) {
@@ -423,7 +415,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         }
     }
 
-    function _encodeToken(NFTData storage tokenData, uint256 auxIndex) private view returns(bytes32) {
+    function _encodeToken(NFTData storage tokenData) private view returns(bytes32) {
         uint256 total = tokenData.level;
         total = total << 64;
         total += tokenData.group;
@@ -432,7 +424,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IAuxCompatableNFT, ERC721, SizeSo
         total = total << 64;
         total += groupData[tokenData.group][tokenData.level - 1].salt;
         total = total << 56;
-        total += auxIndex;
+        //total += auxIndex;
         return bytes32(total);
     }
 
