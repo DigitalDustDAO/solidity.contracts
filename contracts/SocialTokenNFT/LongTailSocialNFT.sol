@@ -20,17 +20,17 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     string[] private auxTokenURIs;
 
     bytes32 private immutable AUX_URI_UNLOCK;
-    uint256 private constant MAXIMUM_LEVEL = 8;
+    uint256 private constant MAXIMUM_TIER = 8;
     string private SLASH = "/";
     string private FORGE_COST = "Forging cost";
     string private NOT_ENABLED = "Cannot forge: Not enabled";
 
     mapping(uint256 => NFTData) private dataMap;
-    mapping(address => uint32[MAXIMUM_LEVEL]) private levelBalances;
-    mapping(uint256 => GroupData[MAXIMUM_LEVEL - 1]) private groupData; // 1 smaller because level zero isn't represented
+    mapping(address => uint32[MAXIMUM_TIER]) private levelBalances;
+    mapping(uint256 => GroupData[MAXIMUM_TIER - 1]) private groupData; // 1 smaller because tier zero isn't represented
     mapping(address => NFTData[]) private unclaimedBounties;
 
-    uint64[MAXIMUM_LEVEL] private interestBonuses;
+    uint64[MAXIMUM_TIER] private interestBonuses;
     uint64 private elementSize;
     uint64 private elementIndex;
     uint64 public  highestDefinedGroup;
@@ -44,7 +44,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         AUX_URI_UNLOCK = auxUriUnlock;
 
         interestBonuses[0] = 70368744177664;
-        for(uint256 i = 1;i < MAXIMUM_LEVEL;i++) {
+        for(uint256 i = 1;i < MAXIMUM_TIER;i++) {
             interestBonuses[i] = interestBonuses[i - 1] * 3;
         }
 
@@ -89,7 +89,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         elementMintCost = int256(newElementCost) * -1;
         forgeCost = int256(newForgeCost) * -1;
 
-        for(uint256 i = 0;i < MAXIMUM_LEVEL;i++) {
+        for(uint256 i = 0;i < MAXIMUM_TIER;i++) {
             if (interestBonusValues.length > i && interestBonusValues[i] > 0) {
                 interestBonuses[i] = interestBonusValues[i];
             }
@@ -124,7 +124,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
      */
     function setGroupData(uint64 group, uint64[] memory sizes, bool[] memory auxVersionEnabled, uint32[] memory uriIndexes, uint64[] memory salts) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
-        require(sizes.length < MAXIMUM_LEVEL, OUT_OF_BOUNDS);
+        require(sizes.length < MAXIMUM_TIER, OUT_OF_BOUNDS);
         require(sizes.length > 0, OUT_OF_BOUNDS);
         require(group <= highestDefinedGroup + 1, OUT_OF_BOUNDS);
 
@@ -198,9 +198,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
      * Public views
      */
     function interestBonus(address account) external view returns(uint256 totalBonus) {
-        for (uint256 level = MAXIMUM_LEVEL;level > 0;level--) {
-            if (levelBalances[account][level - 1] > 0) {
-                totalBonus += interestBonuses[level - 1];
+        for (uint256 tier = MAXIMUM_TIER;tier > 0;tier--) {
+            if (levelBalances[account][tier - 1] > 0) {
+                totalBonus += interestBonuses[tier - 1];
             }
         }
     }
@@ -209,14 +209,14 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         require(_exists(tokenId), NON_EXISTANT);
         NFTData storage tokenData = dataMap[tokenId];
 
-        uint256 uriIndex = tokenData.level == 0 ? 0 : groupData[tokenData.group][tokenData.level - 1].uriIndex;
+        uint256 uriIndex = tokenData.tier == 0 ? 0 : groupData[tokenData.group][tokenData.tier - 1].uriIndex;
         string storage baseURI;
 
         if (baseTokenURIs.length <= uriIndex) { return ""; }
         else { baseURI = baseTokenURIs[uriIndex]; }
 
         return string(abi.encodePacked(baseURI, SLASH, 
-                uint256(tokenData.level).toString(), SLASH, 
+                uint256(tokenData.tier).toString(), SLASH, 
                 uint256(tokenData.group).toString(), SLASH,
                 uint256(tokenData.index).toString()
             )
@@ -230,12 +230,12 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         address signer = _recoverSigner(AUX_URI_UNLOCK, signedMessage);
         //uint256 auxIndex = manager.auxToken(signer);
 
-        if (ownerOf(tokenId) != signer || tokenData.level == 0 
-                || !groupData[tokenData.group][tokenData.level - 1].auxEnabled) {
+        if (ownerOf(tokenId) != signer || tokenData.tier == 0 
+                || !groupData[tokenData.group][tokenData.tier - 1].auxEnabled) {
             return (false, tokenURI(tokenId));
         }
 
-        uint256 uriIndex = groupData[tokenData.group][tokenData.level - 1].uriIndex;
+        uint256 uriIndex = groupData[tokenData.group][tokenData.tier - 1].uriIndex;
         string storage auxURI;
         if (auxTokenURIs.length <= uriIndex) { return (false, tokenURI(tokenId)); }
         else { auxURI = auxTokenURIs[uriIndex]; }
@@ -243,10 +243,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         return (true, string(abi.encodePacked(auxURI, SLASH, _toHexString(keccak256(abi.encode(_encodeToken(tokenData)))))));
     }
 
-    function getTokenInfo(uint256 tokenId) public view returns(uint8 level, uint64 group, uint64 index) {
+    function getTokenInfo(uint256 tokenId) public view returns(uint8 tier, uint64 group, uint64 index) {
         require(_exists(tokenId), NON_EXISTANT);
 
-        level = dataMap[tokenId].level;
+        tier = dataMap[tokenId].tier;
         group = dataMap[tokenId].group;
         index = dataMap[tokenId].index;
     }
@@ -257,8 +257,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         return (baseTokenURIs[index], auxTokenURIs[index]);
     }
 
-    function getGroupData(uint256 group) public view returns(uint32[MAXIMUM_LEVEL - 1] memory uriIndex, uint64[MAXIMUM_LEVEL - 1] memory size, 
-        uint64[MAXIMUM_LEVEL - 1] memory currentIndex, bool[MAXIMUM_LEVEL - 1] memory auxEnabled) {
+    function getGroupData(uint256 group) public view returns(uint32[MAXIMUM_TIER - 1] memory uriIndex, uint64[MAXIMUM_TIER - 1] memory size, 
+        uint64[MAXIMUM_TIER - 1] memory currentIndex, bool[MAXIMUM_TIER - 1] memory auxEnabled) {
         require(group <= highestDefinedGroup, OUT_OF_BOUNDS);
 
         if (group == 0) {
@@ -267,7 +267,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         }
         else {
             GroupData storage datum;
-            for (uint256 i = 0;i < MAXIMUM_LEVEL - 1;i++) {
+            for (uint256 i = 0;i < MAXIMUM_TIER - 1;i++) {
                 datum = groupData[group][i];
                 uriIndex[i]     = datum.uriIndex;
                 size[i]         = datum.size;
@@ -281,7 +281,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         return unclaimedBounties[account];
     }
 
-    function getForgeValues() public view returns(uint256 costToMintElements, uint256 costToForgeUpgrades, uint64[MAXIMUM_LEVEL] memory interestRateBonuses) {
+    function getForgeValues() public view returns(uint256 costToMintElements, uint256 costToForgeUpgrades, uint64[MAXIMUM_TIER] memory interestRateBonuses) {
         costToMintElements = uint256(elementMintCost * -1);
         costToForgeUpgrades = uint256(forgeCost * -1);
         interestRateBonuses = interestBonuses;
@@ -298,7 +298,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         while (bountyList.length > 0 && number > 0) {
             item = bountyList[bountyList.length - 1];
 
-            if (item.level == 0) {
+            if (item.tier == 0) {
                 item.group = 0;
                 if (item.index > elementSize || item.index == 0)
                 {
@@ -312,8 +312,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
                     require(item.group != 0, NOT_ENABLED);
                 }
 
-                if (groupData[item.group][item.level - 1].size > 0 && item.index > groupData[item.group][item.level - 1].size) {
-                    group = groupData[item.group][item.level - 1];
+                if (groupData[item.group][item.tier - 1].size > 0 && item.index > groupData[item.group][item.tier - 1].size) {
+                    group = groupData[item.group][item.tier - 1];
                     item.index = group.current;
                     group.current = (group.current + 1) % group.size;
                 }
@@ -327,7 +327,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         }
     }
 
-    // This version of forge creates base level NFTs using tokens that must be held in the caller's wallet.
+    // This version of forge creates base tier NFTs using tokens that must be held in the caller's wallet.
     function forge(uint256 numberOfElements) public {
         require(elementSize > 0, NOT_ENABLED);
 
@@ -344,7 +344,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     }
 
     // This version takes the id numbers of two NFTs to be forged together. The NFTs must be owned by the caller 
-    //  and of the same level. The first id number passed in will be advanced to the next level higher, while the 
+    //  and of the same tier. The first id number passed in will be advanced to the next tier higher, while the 
     //  second will be burned.
     function forge(uint256 chosenNftId, uint256 scrappedNftId) public {
         NFTData memory forgedItem = dataMap[chosenNftId];
@@ -357,9 +357,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         require(ownerOf(scrappedNftId) == caller, NOT_APPROVED);
         require(chosenNftId != scrappedNftId, INVALID_INPUT);
         require(highestDefinedGroup > 0, NOT_ENABLED);
-        require(forgedItem.level < MAXIMUM_LEVEL - 1, NOT_ENABLED);
-        require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.level].size > 0, NOT_ENABLED);
-        require(material.level == forgedItem.level, INVALID_INPUT);
+        require(forgedItem.tier < MAXIMUM_TIER - 1, NOT_ENABLED);
+        require(forgedItem.group == 0 || groupData[forgedItem.group][forgedItem.tier].size > 0, NOT_ENABLED);
+        require(material.tier == forgedItem.tier, INVALID_INPUT);
 
         // Attempt to deduct forging cost
         if (forgeCost < 0) {
@@ -367,26 +367,26 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         }
 
         // Destroy the passed in items and update the size list
-        if (material.level > 0) {
+        if (material.tier > 0) {
             decrementSizeList(material.group);
         }
         _burn(scrappedNftId);
 
         // Select a group if nessessary
-        if (forgedItem.level == 0) {
+        if (forgedItem.tier == 0) {
             forgedItem.group = getSizeListSmallestEntry();
             incrementSizeList(forgedItem.group);
         }
 
-        levelBalances[caller][forgedItem.level]--;
+        levelBalances[caller][forgedItem.tier]--;
 
-        // Instead of using "forgedItem.level - 1" here we're just incrementing it AFTER using it
-        forgedItem.index = groupData[forgedItem.group][forgedItem.level].current;
-        groupData[forgedItem.group][forgedItem.level].current = 
-            (groupData[forgedItem.group][forgedItem.level].current + 1) % groupData[forgedItem.group][forgedItem.level].size;
-        forgedItem.level++;
+        // Instead of using "forgedItem.tier - 1" here we're just incrementing it AFTER using it
+        forgedItem.index = groupData[forgedItem.group][forgedItem.tier].current;
+        groupData[forgedItem.group][forgedItem.tier].current = 
+            (groupData[forgedItem.group][forgedItem.tier].current + 1) % groupData[forgedItem.group][forgedItem.tier].size;
+        forgedItem.tier++;
 
-        levelBalances[caller][forgedItem.level]++;
+        levelBalances[caller][forgedItem.tier]++;
 
         // Upgrade the chosen NFT with the modified properties
         dataMap[chosenNftId] = forgedItem;
@@ -396,7 +396,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     function balanceOf(address ownerAddress) public view virtual override returns (uint256 total) {
         require(ownerAddress != address(0), INVALID_INPUT);
         
-        for(uint256 i = 0;i < MAXIMUM_LEVEL;i++) {
+        for(uint256 i = 0;i < MAXIMUM_TIER;i++) {
             total += levelBalances[ownerAddress][i];
         }
     }
@@ -404,11 +404,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     // Internal functions
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal override {
         if (from != address(0)) {
-            levelBalances[from][dataMap[tokenId].level]--;
+            levelBalances[from][dataMap[tokenId].tier]--;
         }
 
         if (to != address(0)) {
-            levelBalances[to][dataMap[tokenId].level]++;
+            levelBalances[to][dataMap[tokenId].tier]++;
         }
         else {
             delete(dataMap[tokenId]);
@@ -416,13 +416,13 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     }
 
     function _encodeToken(NFTData storage tokenData) private view returns(bytes32) {
-        uint256 total = tokenData.level;
+        uint256 total = tokenData.tier;
         total = total << 64;
         total += tokenData.group;
         total = total << 64;
         total += tokenData.index;
         total = total << 64;
-        total += groupData[tokenData.group][tokenData.level - 1].salt;
+        total += groupData[tokenData.group][tokenData.tier - 1].salt;
         total = total << 56;
         //total += auxIndex;
         return bytes32(total);

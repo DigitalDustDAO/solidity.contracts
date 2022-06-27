@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 interface ISocialTokenNFT {
     
     struct NFTData {
-        uint8  level;
+        uint8  tier;
         uint64 group;
         uint64 index;
     } // 96 bits unused
@@ -27,7 +27,7 @@ interface ISocialTokenNFT {
     );
 
     event GroupDataChanged (
-        uint256 indexed level,
+        uint256 indexed tier,
         uint256 indexed group,
         uint64 oldSize,
         uint64 newSize,
@@ -55,7 +55,7 @@ interface ISocialTokenNFT {
 
     // Public views
     function interestBonus(address account) external view returns(uint256);
-    function getTokenInfo(uint256 tokenId) external view returns(uint8 level, uint64 group, uint64 index);
+    function getTokenInfo(uint256 tokenId) external view returns(uint8 tier, uint64 group, uint64 index);
     function getURIsByIndex(uint32 index) external view returns(string memory baseURI, string memory auxURI);
     function getClaimableBounties(address account) external view returns(NFTData[] memory bounties);
 }

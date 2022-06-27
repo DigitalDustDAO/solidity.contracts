@@ -62,6 +62,7 @@ abstract contract SizeSortedList {
 
     function incrementSizeList(uint64 itemNumber) internal {
         ItemNode storage countNode = itemCounts[itemNumber];
+        require(itemNumber > 0, "Item zero incremented");
 
         if (totalOfCounts[0].count == countNode.count) {
             if (_countNodeRemove(countNode, itemNumber)) {

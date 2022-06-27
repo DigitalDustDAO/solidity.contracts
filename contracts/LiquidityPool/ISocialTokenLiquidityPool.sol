@@ -13,7 +13,6 @@ interface ISocialTokenLiquidityPool is IERC165 {
         uint192 principal;
     }
 
-
     function setManager(address newManager) external;
     function fundPool(uint256 tokenAmount) external;
     function setInterestRate(uint128 newInterestRate, uint64 newVestingPeriod) external;
