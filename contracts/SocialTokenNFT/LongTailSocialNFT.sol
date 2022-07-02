@@ -153,9 +153,11 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         for (uint256 i = 0;i <= sizes.length - 1;i++) {
             thisDatum.size = sizes[i];
 
-            thisDatum.current = groupData[group][i].current;
-            if (thisDatum.current > thisDatum.size) {
-                thisDatum.current = 0;
+            if (thisDatum.size > groupData[group][i].size) {
+                thisDatum.current = thisDatum.size - 1;
+            }
+            else {
+                thisDatum.current = groupData[group][i].current;
             }
 
             if (uriIndexes.length > i) {
@@ -312,10 +314,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
                     require(item.group != 0, NOT_ENABLED);
                 }
 
-                if (groupData[item.group][item.tier - 1].size > 0 && item.index > groupData[item.group][item.tier - 1].size) {
-                    group = groupData[item.group][item.tier - 1];
+                group = groupData[item.group][item.tier - 1];
+                if (group.size > 0 && item.index > group.size) {
                     item.index = group.current;
-                    group.current = (group.current + 1) % group.size;
+                    group.current = (group.current > 0 ? group.current : group.size) - 1;
                 }
 
                 incrementSizeList(item.group);
@@ -381,9 +383,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         levelBalances[caller][forgedItem.tier]--;
 
         // Instead of using "forgedItem.tier - 1" here we're just incrementing it AFTER using it
-        forgedItem.index = groupData[forgedItem.group][forgedItem.tier].current;
-        groupData[forgedItem.group][forgedItem.tier].current = 
-            (groupData[forgedItem.group][forgedItem.tier].current + 1) % groupData[forgedItem.group][forgedItem.tier].size;
+        GroupData storage forgedGroup = groupData[forgedItem.group][forgedItem.tier];
+        forgedItem.index = forgedGroup.current;
+        forgedGroup.current = (forgedGroup.current > 0 ? forgedGroup.current : forgedGroup.size) - 1;
         forgedItem.tier++;
 
         levelBalances[caller][forgedItem.tier]++;
@@ -423,8 +425,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         total += tokenData.index;
         total = total << 64;
         total += groupData[tokenData.group][tokenData.tier - 1].salt;
-        total = total << 56;
-        //total += auxIndex;
         return bytes32(total);
     }
 
