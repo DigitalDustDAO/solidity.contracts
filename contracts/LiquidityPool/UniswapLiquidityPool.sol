@@ -41,7 +41,7 @@ contract UniswapLiquidityPool is ISocialTokenLiquidityPool, Context, ERC165 {
         
         pairAddress = IUniswapV2Pair(existingPairAddress);
         
-        START_TIME = block.timestamp - 2 hours + 2 minutes - (block.timestamp % 1 days);
+        START_TIME = block.timestamp - 2 hours - (block.timestamp % 1 days);
         interestRate = 4294967296;
     }
 

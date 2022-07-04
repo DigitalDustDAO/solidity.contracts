@@ -49,6 +49,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         }
 
         elementMintCost = -10**19;
+        forgeCost = -10**18;
         owner = _msgSender();
         emit OwnershipTransferred(address(0), owner);
     }
@@ -153,7 +154,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         for (uint256 i = 0;i <= sizes.length - 1;i++) {
             thisDatum.size = sizes[i];
 
-            if (thisDatum.size > groupData[group][i].size) {
+            if (thisDatum.size > groupData[group][i].size || groupData[group][i].current >= thisDatum.size) {
                 thisDatum.current = thisDatum.size - 1;
             }
             else {

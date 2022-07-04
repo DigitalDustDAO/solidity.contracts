@@ -34,7 +34,7 @@ contract LongTailSocialToken is ISocialToken, ERC20 {
 
         manager = ISocialTokenManager(managerAddress);
 
-        START_TIME = block.timestamp - 2 hours + 2 minutes - (block.timestamp % 1 days);
+        START_TIME = block.timestamp - 2 hours - (block.timestamp % 1 days);
         lastInterestAdjustment = type(uint64).max;
 
         // Pick some default values
