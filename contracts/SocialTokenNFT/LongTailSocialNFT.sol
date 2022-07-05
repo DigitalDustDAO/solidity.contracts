@@ -31,7 +31,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     mapping(address => NFTData[]) private unclaimedBounties;
 
     uint64[MAXIMUM_TIER] private interestBonuses;
-    uint64 private elementSize;
+    uint64 private elementSize = 50;
     uint64 private elementIndex;
     uint64 public  highestDefinedGroup;
     address public owner;
@@ -43,9 +43,9 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         manager = ISocialTokenManager(managerAddress);
         AUX_URI_UNLOCK = auxUriUnlock;
 
-        interestBonuses[0] = 70368744177664;
+        interestBonuses[0] = 576460752303423488;
         for(uint256 i = 1;i < MAXIMUM_TIER;i++) {
-            interestBonuses[i] = interestBonuses[i - 1] * 3;
+            interestBonuses[i] = interestBonuses[i - 1] + 35184372088832;
         }
 
         elementMintCost = -10**19;
@@ -64,6 +64,13 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
             super.supportsInterface(interfaceId);
     }
 
+    function transferOwnership(address newOwner) public {
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
+
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
     /**
      * Manager upgrade function
      */
@@ -77,13 +84,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     /**
      * Economy adjustment functions
      */
-    function transferOwnership(address newOwner) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
-
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
-    }
-
     function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] memory interestBonusValues) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
@@ -93,10 +93,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         for(uint256 i = 0;i < MAXIMUM_TIER;i++) {
             if (interestBonusValues.length > i && interestBonusValues[i] > 0) {
                 interestBonuses[i] = interestBonusValues[i];
-            }
-
-            if (i > 0 && interestBonuses[i - 1] > interestBonuses[i]) {
-                interestBonuses[i] = interestBonuses[i - 1];
             }
         }
     }
@@ -139,7 +135,8 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
 
             return;
         }
-        else if(sizes[0] == 0) {
+        
+        if(sizes[0] == 0) {
             removeItemFromTracking(group);
         }
         else if (groupData[group][0].size == 0) {
