@@ -65,7 +65,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     }
 
     function transferOwnership(address newOwner) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Elder);
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
 
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
@@ -82,10 +82,10 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     }
 
     /**
-     * Economy adjustment functions
+     * Council functions
      */
     function setForgeValues(uint256 newElementCost, uint256 newForgeCost, uint64[] memory interestBonusValues) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
 
         elementMintCost = int256(newElementCost) * -1;
         forgeCost = int256(newForgeCost) * -1;
@@ -98,7 +98,7 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
     }
 
     function setURIs(uint32 index, string memory newURI, string memory newAuxURI) public {
-        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Maintainance);
+        manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(index <= baseTokenURIs.length, OUT_OF_BOUNDS);
 
         if (index == baseTokenURIs.length) {
@@ -116,9 +116,6 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
         }
     }
 
-    /**
-     * Council functions
-     */
     function setGroupData(uint64 group, uint64[] memory sizes, bool[] memory auxVersionEnabled, uint32[] memory uriIndexes, uint64[] memory salts) public {
         manager.authorize(_msgSender(), ISocialTokenManager.Sensitivity.Council);
         require(sizes.length < MAXIMUM_TIER, OUT_OF_BOUNDS);
@@ -308,12 +305,12 @@ contract LongTailSocialNFT is ISocialTokenNFT, IPrivateAdultNFT, ERC721, SizeSor
             }
             else {
                 if (item.group == 0) {
+                    require(getSizeListSmallestEntry() != 0, NOT_ENABLED);
                     item.group = getSizeListSmallestEntry();
-                    require(item.group != 0, NOT_ENABLED);
                 }
 
                 group = groupData[item.group][item.tier - 1];
-                if (group.size > 0 && item.index > group.size) {
+                if (group.size > 0 && item.index == 0) {
                     item.index = group.current;
                     group.current = (group.current > 0 ? group.current : group.size) - 1;
                 }
